@@ -3,13 +3,11 @@
 ## Axios 인스턴스
 
 ```typescript
-// api/client.ts
+// src/api/client.ts
 import axios from 'axios';
 
 const client = axios.create({
-  baseURL: '/api',           // Vite proxy → http://localhost:8080/api
-  timeout: 10000,
-  headers: { 'Content-Type': 'application/json' },
+  baseURL: 'http://localhost:8080',
 });
 
 // 요청 인터셉터 — JWT 자동 주입
@@ -39,65 +37,65 @@ export default client;
 ## Auth API
 
 ```typescript
-// api/auth.ts
+// src/api/auth.ts
 import client from './client';
-import type { LoginRequest, RegisterRequest, AuthResponse } from '../types/auth';
+import type { AuthRequest, AuthResponse, RegisterRequest } from '../types/auth';
 
-export const authApi = {
-  login: (data: LoginRequest) =>
-    client.post<AuthResponse>('/auth/login', data).then(r => r.data),
+export const register = (data: RegisterRequest) =>
+  client.post<AuthResponse>('/api/auth/register', data).then((r) => r.data);
 
-  register: (data: RegisterRequest) =>
-    client.post<AuthResponse>('/auth/register', data).then(r => r.data),
-};
+export const login = (data: AuthRequest) =>
+  client.post<AuthResponse>('/api/auth/login', data).then((r) => r.data);
+
+export const me = () =>
+  client.get<AuthResponse>('/api/auth/me').then((r) => r.data);
 ```
 
 ## Tasks API
 
 ```typescript
-// api/tasks.ts
+// src/api/tasks.ts
 import client from './client';
-import type { Task, CreateTaskRequest } from '../types/task';
+import type { TaskRequest, TaskResponse } from '../types/task';
 
-export const taskApi = {
-  getAll: () =>
-    client.get<Task[]>('/tasks').then(r => r.data),
+export const getTasks = () =>
+  client.get<TaskResponse[]>('/api/tasks').then((r) => r.data);
 
-  create: (data: CreateTaskRequest) =>
-    client.post<Task>('/tasks', data).then(r => r.data),
+export const createTask = (data: TaskRequest) =>
+  client.post<TaskResponse>('/api/tasks', data).then((r) => r.data);
 
-  update: (id: number, data: Partial<CreateTaskRequest>) =>
-    client.put<Task>(`/tasks/${id}`, data).then(r => r.data),
+export const updateTask = (id: number, data: TaskRequest) =>
+  client.put<TaskResponse>(`/api/tasks/${id}`, data).then((r) => r.data);
 
-  delete: (id: number) =>
-    client.delete(`/tasks/${id}`),
-};
+export const deleteTask = (id: number) =>
+  client.delete(`/api/tasks/${id}`);
 ```
 
 ## TypeScript 타입
 
 ```typescript
-// types/auth.ts
-export interface LoginRequest { email: string; password: string; }
-export interface RegisterRequest extends LoginRequest { name: string; }
-export interface AuthResponse { token: string; email: string; name: string; }
+// src/types/auth.ts
+export interface AuthRequest { email: string; password: string; }
+export interface RegisterRequest { name: string; email: string; password: string; }
+export interface AuthResponse { token?: string; email: string; name: string; }
 
-// types/task.ts
+// src/types/task.ts
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'DONE';
 
-export interface Task {
-  id: number;
-  title: string;
-  description: string | null;
-  status: TaskStatus;
-  dueDate: string | null;  // YYYY-MM-DD
-  createdAt: string;       // ISO 8601
-}
-
-export interface CreateTaskRequest {
+export interface TaskRequest {
   title: string;
   description?: string;
+  status?: TaskStatus;
+  dueDate?: string;  // YYYY-MM-DD
+}
+
+export interface TaskResponse {
+  id: number;
+  title: string;
+  description?: string;
+  status: TaskStatus;
   dueDate?: string;
+  createdAt: string;  // ISO 8601
 }
 ```
 
@@ -105,11 +103,10 @@ export interface CreateTaskRequest {
 
 ```typescript
 try {
-  await authApi.login(credentials);
-  navigate('/dashboard');
-} catch (error) {
-  if (axios.isAxiosError(error)) {
-    setError(error.response?.data?.message ?? '로그인 실패');
-  }
+  const res = await login(credentials);
+  localStorage.setItem('token', res.token!);
+  navigate('/tasks');
+} catch {
+  messageApi.error('이메일 또는 비밀번호가 올바르지 않습니다');
 }
 ```

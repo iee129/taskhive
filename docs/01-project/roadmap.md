@@ -15,12 +15,15 @@
 - REST API: `GET/POST/PUT/DELETE /api/tasks/*`
 - Maven 컴파일 통과
 
-## Phase 3 — 프론트엔드 React UI 🚧 예정
+## Phase 3 — 프론트엔드 React UI ✅ 완료
 
-- Vite + React 18 + TypeScript 5 프로젝트 초기화
-- React Router 라우팅 구성
-- Axios 클라이언트 + JWT 인터셉터
-- 태스크 목록 / 생성 / 수정 / 삭제 UI 페이지
+- Vite + React 18 + TypeScript 5 + Ant Design 5 프로젝트 구성
+- React Router v6 라우팅 (공개 / PrivateRoute 보호 경로 분리)
+- Axios 클라이언트 + JWT 자동 주입 인터셉터 + 401 자동 로그아웃
+- 로그인 / 회원가입 페이지 (`/login`, `/register`)
+- 태스크 목록 / 생성 / 수정 / 삭제 페이지 (`/tasks`)
+- 내 정보 페이지 (`/profile`)
+- `npm run build` TypeScript 에러 0개
 
 ## Phase 4 — Docker Compose 통합 🚧 예정
 

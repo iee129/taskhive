@@ -8,9 +8,30 @@
 ## [미출시]
 
 ### 추가 예정
-- React UI 전체 페이지 구현
 - Docker Compose 통합 검증
 - Kubernetes 배포 매니페스트 검증
+
+---
+
+## [0.4.0] — 2026-05-12
+
+### 추가
+- `frontend/` — Vite + React 18 + TypeScript 5 + Ant Design 5 SPA 구현
+- `src/api/client.ts` — Axios 인스턴스, JWT 자동 주입 인터셉터, 401 자동 로그아웃
+- `src/api/auth.ts` — `register`, `login`, `me` API 함수
+- `src/api/tasks.ts` — `getTasks`, `createTask`, `updateTask`, `deleteTask` API 함수
+- `src/types/auth.ts` — `AuthRequest`, `RegisterRequest`, `AuthResponse` 타입
+- `src/types/task.ts` — `TaskStatus`, `TaskRequest`, `TaskResponse` 타입
+- `src/components/PrivateRoute.tsx` — 비인증 접근 시 `/login` 리다이렉트
+- `src/components/Layout.tsx` — Ant Design Sider 레이아웃 + 로그아웃 버튼
+- `src/pages/LoginPage.tsx` — 로그인 폼, JWT 저장 후 `/tasks` 이동
+- `src/pages/RegisterPage.tsx` — 회원가입 폼, 성공 시 자동 로그인
+- `src/pages/TasksPage.tsx` — 태스크 Table + 생성/수정 Modal + 삭제 Popconfirm
+- `src/pages/ProfilePage.tsx` — `/api/auth/me` 결과 표시 (Ant Design Descriptions)
+- `src/App.tsx` — React Router v6 라우팅 (공개/보호 경로 분리)
+
+### 검증
+- `npm run build` TypeScript 에러 0개
 
 ---
 

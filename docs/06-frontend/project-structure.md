@@ -7,34 +7,24 @@ frontend/
 ├── tsconfig.json
 ├── vite.config.ts
 └── src/
-    ├── main.tsx                  # React 앱 진입점
-    ├── App.tsx                   # 루트 컴포넌트 + 라우터 설정
+    ├── main.tsx                  # React 앱 진입점 (BrowserRouter 포함)
+    ├── App.tsx                   # 라우팅 설정
+    ├── index.css                 # 전역 스타일
     ├── api/
-    │   ├── client.ts             # Axios 인스턴스 + 인터셉터
-    │   ├── auth.ts               # 회원가입·로그인 API 함수
-    │   └── tasks.ts              # 태스크 CRUD API 함수
+    │   ├── client.ts             # Axios 인스턴스 + JWT 인터셉터
+    │   ├── auth.ts               # register, login, me API 함수
+    │   └── tasks.ts              # getTasks, createTask, updateTask, deleteTask
     ├── components/
-    │   ├── common/
-    │   │   ├── Navbar.tsx        # 상단 네비게이션
-    │   │   ├── Button.tsx        # 공용 버튼
-    │   │   └── LoadingSpinner.tsx
-    │   └── tasks/
-    │       ├── TaskList.tsx      # 태스크 목록
-    │       ├── TaskCard.tsx      # 태스크 카드
-    │       └── TaskForm.tsx      # 태스크 생성·수정 폼
+    │   ├── PrivateRoute.tsx      # 비인증 접근 시 /login 리다이렉트
+    │   └── Layout.tsx            # Ant Design 사이드바 레이아웃 + 로그아웃
     ├── pages/
-    │   ├── LoginPage.tsx
-    │   ├── RegisterPage.tsx
-    │   └── DashboardPage.tsx
-    ├── store/                    # 상태 관리 (Context 또는 Zustand)
-    │   ├── authStore.ts
-    │   └── taskStore.ts
-    ├── types/
-    │   ├── auth.ts               # LoginRequest, AuthResponse 타입
-    │   └── task.ts               # Task, CreateTaskRequest 타입
-    └── utils/
-        ├── tokenStorage.ts       # localStorage 래퍼
-        └── dateFormatter.ts      # ISO 8601 → 표시용 날짜 변환
+    │   ├── LoginPage.tsx         # /login
+    │   ├── RegisterPage.tsx      # /register
+    │   ├── TasksPage.tsx         # /tasks — 목록 + 생성/수정/삭제 모달
+    │   └── ProfilePage.tsx       # /profile — 내 정보
+    └── types/
+        ├── auth.ts               # AuthRequest, RegisterRequest, AuthResponse
+        └── task.ts               # TaskStatus, TaskRequest, TaskResponse
 ```
 
 ## vite.config.ts 핵심 설정
@@ -43,7 +33,7 @@ frontend/
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 3000,
+    port: 5173,
     proxy: {
       '/api': {
         target: 'http://localhost:8080',
@@ -54,25 +44,22 @@ export default defineConfig({
 });
 ```
 
-## tsconfig.json strict 옵션
+## 라우팅 구조
 
-```json
-{
-  "compilerOptions": {
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noImplicitReturns": true
-  }
-}
-```
+| 경로 | 컴포넌트 | 인증 필요 |
+|------|----------|----------|
+| `/login` | LoginPage | 불필요 |
+| `/register` | RegisterPage | 불필요 |
+| `/tasks` | TasksPage | ✅ |
+| `/profile` | ProfilePage | ✅ |
+| `*` | Navigate → `/tasks` | — |
+
+보호된 경로는 `PrivateRoute`가 감싸며, `localStorage['token']` 없으면 `/login`으로 리다이렉트.
 
 ## 네이밍 규칙
 
 | 유형 | 규칙 | 예시 |
 |------|------|------|
-| 컴포넌트 | PascalCase | `TaskCard.tsx` |
-| 훅 | camelCase, `use` 접두사 | `useAuth.ts` |
+| 컴포넌트 | PascalCase | `TasksPage.tsx` |
 | 타입/인터페이스 | PascalCase | `TaskResponse` |
 | API 함수 | camelCase | `createTask()` |
-| 유틸 함수 | camelCase | `formatDate()` |
