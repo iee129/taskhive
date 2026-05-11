@@ -1,190 +1,565 @@
 # 개발 로드맵
 
-> **포지션 목표**: 풀스택 (Java/Spring + React/TypeScript)
-> **강조 역량**: 클린 아키텍처 · 보안/인증 · 테스트 · 성능 최적화 · UI/UX
+> **포지션 목표**: 풀스택 (Java/Spring + React/TypeScript)  
+> **강조 역량**: 클린 아키텍처 · 보안/인증 · 테스트/TDD · 성능 최적화 · UI/UX
 
 ---
 
 ## Phase 1 — 프로젝트 골격 ✅ 완료
 
-- GitHub 레포지토리 생성 (Public)
-- 디렉토리 구조 구성 (`auth/` · `frontend/` · `k8s/` · `docker/` · `docs/`)
-- `.gitignore`, `README.md`
+GitHub 레포지토리 생성, 디렉토리 구조, `.gitignore`, `README.md`
 
 ---
 
 ## Phase 2 — 백엔드 REST API + JWT 인증 기초 ✅ 완료
 
-- JPA Entity: `User`, `Task` (Spring Data JPA + H2)
-- Repository → Service → Controller 3계층 구현
-- JWT 발급·검증 (`JwtUtil`, `JwtFilter`, `SecurityConfig`)
-- `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me`
-- `GET/POST/PUT/DELETE /api/tasks/*`
-- `GlobalExceptionHandler` — 비즈니스 예외 → HTTP 상태 코드 매핑
-- `AuthenticationEntryPoint` — 미인증 요청 401 JSON 응답
-- `@JsonInclude(NON_NULL)` — 응답 JSON 슬림화
-- MockMvc 통합 테스트 8개, Mockito 단위 테스트 6개
+JPA 3계층 · JWT 발급·검증 · Task CRUD · GlobalExceptionHandler · MockMvc 14개 테스트
 
 ---
 
 ## Phase 3 — 프론트엔드 React UI 기초 ✅ 완료
 
-- Vite + React 18 + TypeScript 5 + Ant Design 5
-- React Router v6 (`PrivateRoute` + `Layout`)
-- Axios 클라이언트 + JWT 자동 주입 인터셉터 + 401 자동 로그아웃
-- 로그인 / 회원가입 / 태스크 CRUD / 내 정보 페이지
-- `npm run build` TypeScript 에러 0개
+Vite + React 18 + TypeScript 5 + Ant Design 5 · PrivateRoute · 4개 페이지 · `npm run build` 에러 0
 
 ---
 
-## Phase 4 — 인증 고도화 (보안) 🚧 예정
+## Phase 4 — 인증 고도화 🚧 예정
 
-> Access Token + Refresh Token 이중 구조로 실무 수준 인증 구현
+> Access/Refresh Token 이중 구조 + HttpOnly Cookie + Role 권한
 
-**백엔드**
-- Refresh Token 엔티티 + `POST /api/auth/refresh` 엔드포인트
-- Refresh Token Rotation (재발급 시 이전 토큰 무효화)
-- `POST /api/auth/logout` — DB에서 Refresh Token 삭제
-- Refresh Token → `HttpOnly; Secure; SameSite=Strict` 쿠키 전송 (XSS 방어)
-- Access Token 만료 시간 단축 (15분)
-- `USER` / `ADMIN` Role 기반 권한 (`@PreAuthorize`)
-- 비밀번호 변경 `PUT /api/auth/password`
+**선행 조건**: Phase 2, Phase 3 완료
 
-**프론트엔드**
-- Axios 응답 인터셉터: 401 수신 시 `/api/auth/refresh` 자동 호출 후 원래 요청 재시도
-- 탭 간 로그아웃 동기화 (`storage` 이벤트)
+### 작업 순서
+
+1. `Role` enum (`USER`, `ADMIN`) 정의 → `User` 엔티티에 `role` 컬럼 추가
+2. `RefreshToken` 엔티티·Repository 구현
+3. `RefreshTokenService` — 발급·검증·삭제·Rotation 로직
+4. `AuthController` — `/refresh`, `/logout`, `/password` 엔드포인트 추가
+5. `SecurityConfig` — `@EnableMethodSecurity` 활성화, httpOnly Cookie CORS 허용
+6. 프론트엔드 Axios 인터셉터 — 401 수신 시 `/refresh` 호출 후 원래 요청 재시도
+7. 단위·통합 테스트 추가
+
+### 구현 명세
+
+**신규 파일**
+```
+auth/src/main/java/com/taskhive/
+  model/
+    RefreshToken.java          # id, token(unique), userId(FK), expiresAt, createdAt
+    enums/Role.java            # USER, ADMIN
+  repository/
+    RefreshTokenRepository.java
+  service/
+    RefreshTokenService.java   # issue, rotate, invalidate
+```
+
+**DB 스키마**
+```sql
+ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'USER';
+
+CREATE TABLE refresh_tokens (
+  id         BIGSERIAL PRIMARY KEY,
+  token      VARCHAR(512) NOT NULL UNIQUE,
+  user_id    BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX idx_refresh_tokens_user ON refresh_tokens(user_id);
+```
+
+**API 계약**
+
+| Method | Path | 요청 | 응답 |
+|--------|------|------|------|
+| POST | `/api/auth/refresh` | Cookie: `refreshToken` | `{accessToken, expiresIn: 900}` |
+| POST | `/api/auth/logout` | Cookie: `refreshToken` | 204 No Content |
+| PUT | `/api/auth/password` | `{currentPassword, newPassword}` | 200 OK |
+
+- Access Token 만료 시간: **15분**
+- Refresh Token 만료 시간: **7일**, `HttpOnly; Secure; SameSite=Strict`
+- Rotation: `/refresh` 호출 시 기존 토큰 삭제 + 신규 발급
+
+### 완료 기준 (AC)
+
+- [ ] Access Token 만료 후 프론트엔드가 자동으로 `/refresh` 호출하여 세션 유지
+- [ ] 응답 Set-Cookie 헤더에 `HttpOnly`, `SameSite=Strict` 확인
+- [ ] 로그아웃 후 동일 Refresh Token으로 재발급 시도 → 401 반환
+- [ ] `@PreAuthorize("hasRole('ADMIN')")` 엔드포인트에 USER 접근 → 403 반환
+- [ ] `RefreshTokenService` 단위 테스트 커버리지 ≥ 90%
 
 ---
 
-## Phase 5 — 아키텍처 고도화 (클린 코드) 🚧 예정
+## Phase 5 — 아키텍처 고도화 🚧 예정
 
-> 도메인 계층 정리 + 에러 처리 체계화 + API 문서화
+> ErrorCode enum · Soft Delete · Project 리소스 · OpenAPI · MDC 요청 추적
 
-**백엔드**
-- 커스텀 예외 계층: `BusinessException` + `ErrorCode` enum (코드·메시지·HTTP 상태 일원화)
-- `@Valid` Bean Validation 강화 (커스텀 `ConstraintValidator` 최소 1개)
-- JPA Auditing: `BaseEntity` (`createdAt`, `updatedAt`, `createdBy`)
-- Soft Delete (`deletedAt`, `@Where(clause = "deleted_at IS NULL")`)
-- `Project` 리소스 도입 — `Task`는 `Project`에 소속 (1:N 관계)
-- `GET /api/projects`, `POST /api/projects`, `PUT/DELETE /api/projects/:id`
-- OpenAPI 3.0 (SpringDoc) — Swagger UI `/swagger-ui.html`
+**선행 조건**: Phase 4 완료
 
-**공통**
-- MDC 기반 요청 추적 (`X-Request-Id` 헤더 전파, 로그 상관)
+### 작업 순서
+
+1. `ErrorCode` enum + `BusinessException` 정의
+2. `GlobalExceptionHandler` 리팩터 — `BusinessException` 단일 핸들러로 통합
+3. `BaseEntity` (`@MappedSuperclass`, `createdAt`, `updatedAt`)
+4. `User`, `Task` 엔티티 → `BaseEntity` 상속 + Soft Delete 컬럼 추가
+5. `Project` 엔티티·Repository·Service·Controller 구현
+6. `Task`에 `project_id` 외래키 추가 (nullable — 기존 데이터 호환)
+7. SpringDoc OpenAPI 의존성 추가 + 컨트롤러 어노테이션
+8. MDC `RequestIdFilter` 구현 (X-Request-Id 헤더 → 로그 상관)
+
+### 구현 명세
+
+**신규 파일**
+```
+auth/src/main/java/com/taskhive/
+  exception/
+    ErrorCode.java             # TASK_NOT_FOUND(404), USER_ALREADY_EXISTS(409), ...
+    BusinessException.java     # RuntimeException + ErrorCode
+  entity/
+    BaseEntity.java            # @MappedSuperclass, createdAt, updatedAt
+  model/
+    Project.java               # id, name, description, owner(FK), BaseEntity
+  repository/ProjectRepository.java
+  service/ProjectService.java
+  controller/ProjectController.java
+  filter/RequestIdFilter.java  # MDC put("requestId", ...)
+```
+
+**ErrorCode 응답 형식**
+```json
+{
+  "code": "TASK_NOT_FOUND",
+  "message": "태스크를 찾을 수 없습니다.",
+  "status": 404,
+  "requestId": "a1b2c3d4"
+}
+```
+
+**DB 스키마**
+```sql
+CREATE TABLE projects (
+  id          BIGSERIAL PRIMARY KEY,
+  name        VARCHAR(100) NOT NULL,
+  description TEXT,
+  owner_id    BIGINT REFERENCES users(id),
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ,
+  deleted_at  TIMESTAMPTZ
+);
+
+ALTER TABLE tasks
+  ADD COLUMN deleted_at  TIMESTAMPTZ,
+  ADD COLUMN project_id  BIGINT REFERENCES projects(id);
+```
+
+**Project API**
+
+| Method | Path | 설명 |
+|--------|------|------|
+| GET | `/api/projects` | 내 프로젝트 목록 |
+| POST | `/api/projects` | 프로젝트 생성 (`{name, description}`) |
+| PUT | `/api/projects/:id` | 수정 |
+| DELETE | `/api/projects/:id` | Soft Delete |
+
+### 완료 기준 (AC)
+
+- [ ] 존재하지 않는 Task 조회 시 `{"code":"TASK_NOT_FOUND","status":404}` 반환
+- [ ] Task 삭제 후 목록 조회 시 해당 행 미노출, DB에는 `deleted_at` 기록됨
+- [ ] `GET /swagger-ui.html` 접속 시 전체 엔드포인트 명세 확인 및 직접 호출 가능
+- [ ] 모든 API 로그에 `requestId` 필드 포함 (로그 grep 가능)
+- [ ] 잘못된 필드(`email` 형식 오류 등) 요청 시 `{"code":"INVALID_INPUT","fields":[...]}` 반환
 
 ---
 
 ## Phase 6 — 기능 확장 🚧 예정
 
-> 실제 사용자가 쓸 수 있는 완성도 있는 기능 세트
+> 페이지네이션 · 검색/필터 · 우선순위 · 댓글 · 칸반 보드
 
-**태스크 고도화**
-- 우선순위 필드 (`LOW` / `MEDIUM` / `HIGH`)
-- 담당자 지정 (프로젝트 멤버 중 1명)
-- 태스크 검색 (`title` 키워드 포함 여부)
-- 상태·우선순위·마감일 기준 필터
-- 커서 기반 또는 오프셋 페이지네이션 (`page`, `size`, `sort`)
+**선행 조건**: Phase 5 완료
 
-**댓글**
-- `Comment` 엔티티 (`Task` 1:N)
-- `GET/POST/DELETE /api/tasks/:id/comments`
+### 작업 순서
 
-**프론트엔드**
-- 프로젝트 선택 → 해당 프로젝트의 태스크 목록 표시
-- 검색창 + 상태/우선순위 필터 UI
-- 무한 스크롤 또는 페이지네이션 컴포넌트
-- 댓글 섹션 (태스크 상세 슬라이드 패널)
-- 칸반 보드 뷰 (Drag & Drop, `@hello-pangea/dnd`)
+1. `Task` 엔티티에 `priority`, `assignee_id` 필드 추가
+2. `TaskController` — 페이지네이션·필터·검색 파라미터 지원
+3. `TaskRepository` — JPA Specification 또는 QueryDSL 동적 쿼리
+4. `Comment` 엔티티·Repository·Controller 구현
+5. 프론트엔드 — 검색창 + 상태/우선순위 필터 드롭다운
+6. 프론트엔드 — 칸반 보드 컴포넌트 (`@hello-pangea/dnd`)
+7. 프론트엔드 — 댓글 섹션 (태스크 상세 사이드 패널)
+
+### 구현 명세
+
+**Task 추가 필드**
+```sql
+ALTER TABLE tasks
+  ADD COLUMN priority    VARCHAR(10) DEFAULT 'MEDIUM',  -- LOW/MEDIUM/HIGH
+  ADD COLUMN assignee_id BIGINT REFERENCES users(id);
+```
+
+**페이지네이션 API**
+```
+GET /api/tasks?page=0&size=10&sort=dueDate,asc&status=TODO&priority=HIGH&search=회의
+```
+```json
+{
+  "content": [...],
+  "page": 0,
+  "size": 10,
+  "totalElements": 42,
+  "totalPages": 5
+}
+```
+
+**Comment API**
+
+| Method | Path | 설명 |
+|--------|------|------|
+| GET | `/api/tasks/:id/comments` | 댓글 목록 |
+| POST | `/api/tasks/:id/comments` | 댓글 작성 (`{content}`) |
+| DELETE | `/api/tasks/:id/comments/:cid` | 내 댓글 삭제 |
+
+**프론트엔드 신규 컴포넌트**
+```
+frontend/src/
+  pages/
+    BoardPage.tsx              # /board — 칸반 보드 (3열: TODO/IN_PROGRESS/DONE)
+  components/
+    TaskFilterBar.tsx          # 상태·우선순위·키워드 필터
+    CommentSection.tsx         # 댓글 목록 + 입력 폼
+    TaskDetailPanel.tsx        # 사이드 슬라이드 패널
+```
+
+### 완료 기준 (AC)
+
+- [ ] 10개 초과 태스크 존재 시 페이지네이션 동작, `totalPages` > 1
+- [ ] `search=키워드` 파라미터로 title 포함 태스크만 필터됨
+- [ ] 칸반 보드에서 카드 드래그 → 상태 즉시 변경 + `PUT /api/tasks/:id` 호출 확인
+- [ ] 댓글 작성 후 새로고침 없이 목록에 즉시 반영
+- [ ] 다른 사용자의 댓글 삭제 시도 → 403 반환
 
 ---
 
 ## Phase 7 — 테스트 고도화 (TDD) 🚧 예정
 
-> 커버리지·신뢰성 지표를 포트폴리오에 수치로 제시
+> Testcontainers · JaCoCo 80% · React Testing Library · MSW · Playwright E2E
 
-**백엔드**
-- Testcontainers (PostgreSQL) — H2 대신 실제 DB 환경 통합 테스트
-- `@DataJpaTest` Repository 계층 슬라이스 테스트
-- `@WebMvcTest` + MockMvc Controller 슬라이스 테스트 (현재 8개 → 30개+)
-- JaCoCo 커버리지 리포트 + 빌드 실패 임계값 설정 (라인 80% 이상)
-- 서비스 계층 경계 조건 (Boundary Value) 단위 테스트
+**선행 조건**: Phase 6 완료 (기능 확장 완료 후 커버리지 확보)
 
-**프론트엔드**
-- Vitest + React Testing Library — 컴포넌트 렌더링 및 인터랙션 테스트
-- MSW (Mock Service Worker) — API 목업으로 네트워크 독립 테스트
-- 핵심 시나리오 E2E: Playwright (`회원가입 → 태스크 생성 → 로그아웃`)
+### 작업 순서
+
+1. Testcontainers `pom.xml` 의존성 추가 + `@TestcontainersConfig` 베이스 클래스
+2. `TaskRepositoryTest` — `@DataJpaTest` + 실제 PostgreSQL 슬라이스 테스트
+3. `AuthIntegrationTest` — 전체 Spring Context + Testcontainers 시나리오 테스트
+4. JaCoCo 플러그인 설정 + 임계값 규칙 (라인 80% 미만 시 빌드 실패)
+5. Vitest + React Testing Library 설정
+6. MSW `handlers.ts` — API 목업 핸들러 작성
+7. 핵심 컴포넌트 테스트 (`LoginPage`, `TasksPage`, `TaskFilterBar`)
+8. Playwright 설치 + E2E 시나리오 작성
+
+### 구현 명세
+
+**신규 테스트 파일**
+```
+auth/src/test/java/com/taskhive/
+  config/TestcontainersConfig.java      # @Container PostgreSQL
+  repository/TaskRepositoryTest.java    # @DataJpaTest, Soft Delete 검증
+  repository/ProjectRepositoryTest.java
+  integration/AuthIntegrationTest.java  # register→login→refresh→logout 전 시나리오
+  integration/TaskIntegrationTest.java  # CRUD + 페이지네이션 검증
+
+frontend/
+  src/
+    mocks/
+      handlers.ts                        # MSW API 핸들러
+      server.ts                          # setupServer
+    tests/
+      LoginPage.test.tsx
+      TasksPage.test.tsx
+      TaskFilterBar.test.tsx
+  e2e/
+    auth.spec.ts                         # 회원가입 → 로그인 → 로그아웃
+    task-crud.spec.ts                    # 태스크 생성 → 수정 → 삭제
+```
+
+**JaCoCo 임계값 설정**
+```xml
+<limit>
+  <counter>LINE</counter>
+  <value>COVEREDRATIO</value>
+  <minimum>0.80</minimum>
+</limit>
+<limit>
+  <counter>BRANCH</counter>
+  <value>COVEREDRATIO</value>
+  <minimum>0.70</minimum>
+</limit>
+```
+
+**Playwright E2E 시나리오 (auth.spec.ts)**
+```
+1. /register 접속 → 폼 작성 → 제출 → /tasks 리다이렉트 확인
+2. /tasks 에서 로그아웃 → /login 리다이렉트 확인
+3. /tasks 직접 접근(비로그인) → /login 리다이렉트 확인
+4. 잘못된 비밀번호 로그인 → 에러 메시지 노출 확인
+```
+
+### 완료 기준 (AC)
+
+- [ ] `mvn verify` — JaCoCo 라인 커버리지 ≥ 80%, 브랜치 커버리지 ≥ 70%
+- [ ] Testcontainers 통합 테스트 — 실제 PostgreSQL 컨테이너에서 전 시나리오 통과
+- [ ] `vitest run --coverage` — 프론트엔드 컴포넌트 커버리지 ≥ 70%
+- [ ] Playwright E2E — `npx playwright test` 전 시나리오 통과 (CI 환경 포함)
+- [ ] MSW 목업으로 네트워크 없이 컴포넌트 테스트 통과
 
 ---
 
-## Phase 8 — 성능·최적화 🚧 예정
+## Phase 8 — 성능 최적화 🚧 예정
 
-> 측정 가능한 수치로 최적화 결과를 증명
+> TanStack Query · Lazy Loading · N+1 제거 · Redis 캐싱 · Lighthouse CI
 
-**프론트엔드**
-- TanStack Query (React Query) 도입 — 서버 상태 캐싱, 자동 재요청, Optimistic Update
-- React Router Lazy Loading (`React.lazy` + `Suspense`) — 초기 번들 크기 감소
-- `React.memo` / `useMemo` / `useCallback` — 불필요한 리렌더링 제거
-- Lighthouse CI — Performance·Accessibility·SEO 점수 측정 및 PR 코멘트 자동화
+**선행 조건**: Phase 7 완료
 
-**백엔드**
-- JPQL Fetch Join — N+1 쿼리 제거 (Hibernate `show_sql` + `explain` 전후 비교)
-- 자주 조회되는 응답 Redis 캐싱 (`@Cacheable`, TTL 설정)
-- DB 인덱스 추가 (`task.status`, `task.due_date`, `task.project_id`)
-- Actuator + Micrometer — `/actuator/metrics` 엔드포인트 노출
+### 작업 순서
+
+1. TanStack Query (`@tanstack/react-query`) 도입 — `QueryClientProvider` 설정
+2. `getTasks`, `getProjects` 훅을 `useQuery`로 전환
+3. Optimistic Update — 태스크 상태 변경 즉시 UI 반영
+4. React Router `lazy()` + `Suspense` — 페이지 단위 코드 스플리팅
+5. `React.memo` + `useCallback` — 리렌더링 병목 제거 (`React DevTools Profiler` 측정)
+6. 백엔드 — `@EntityGraph` 또는 Fetch Join으로 N+1 제거 (`show_sql` 확인)
+7. DB 인덱스 추가 + `EXPLAIN ANALYZE` 전후 비교 기록
+8. Redis 의존성 + `@Cacheable` 설정 (자주 조회되는 프로젝트 목록)
+9. Lighthouse CI GitHub Action 설정
+
+### 구현 명세
+
+**TanStack Query 훅 구조**
+```
+frontend/src/hooks/
+  useTasks.ts        # useQuery + useInfiniteQuery (페이지네이션)
+  useMutateTask.ts   # useMutation (create/update/delete + invalidateQueries)
+  useProjects.ts
+```
+
+**캐싱 전략**
+```
+staleTime: 30_000ms   # 30초간 fresh 유지 (재요청 없음)
+gcTime:    300_000ms  # 5분 후 캐시 제거
+```
+
+**N+1 수정 대상 쿼리 예시**
+```java
+// Before: Task 목록 조회 시 User N번 추가 조회 발생
+// After:
+@Query("SELECT t FROM Task t JOIN FETCH t.assignee WHERE t.deletedAt IS NULL")
+Page<Task> findAllWithAssignee(Pageable pageable);
+```
+
+**Lighthouse CI 임계값**
+```yaml
+assert:
+  assertions:
+    categories:performance:   [warn, {minScore: 0.90}]
+    categories:accessibility: [error, {minScore: 0.90}]
+```
+
+**성능 목표 수치**
+
+| 지표 | 목표 |
+|------|------|
+| Lighthouse Performance | ≥ 90 |
+| First Contentful Paint | ≤ 1.5s (로컬) |
+| 초기 JS 번들 (gzip) | ≤ 300KB |
+| 태스크 목록 쿼리 (DB) | Seq Scan 0개 |
+| 페이지 재방문 네트워크 요청 | 0 (캐시 히트) |
+
+### 완료 기준 (AC)
+
+- [ ] `React DevTools Profiler` — 태스크 상태 변경 시 관련 컴포넌트만 리렌더링
+- [ ] 태스크 목록 페이지 재방문 시 Network 탭에서 API 요청 미발생 (캐시 히트)
+- [ ] `EXPLAIN ANALYZE` 결과 — 태스크 목록 쿼리 Seq Scan → Index Scan 전환
+- [ ] Lighthouse Performance 점수 ≥ 90, Accessibility ≥ 90
+- [ ] 초기 번들에 `TasksPage`, `BoardPage` 코드 미포함 (Network 탭 chunk 확인)
 
 ---
 
 ## Phase 9 — UI/UX 완성도 🚧 예정
 
-> 사용자 경험과 접근성 지표를 포트폴리오 화면으로 증명
+> 반응형 · 다크모드 · 스켈레톤 · Error Boundary · 접근성
 
-- 반응형 레이아웃 (Ant Design Grid, 모바일 Drawer 메뉴)
-- 다크 모드 (Ant Design `theme.algorithm` 토글 + `localStorage` 저장)
-- 스켈레톤 로딩 UI (`Skeleton`, `Spin`)
-- React Error Boundary — 페이지 단위 에러 격리 + fallback UI
-- 전역 Toast / Notification 시스템 (성공·실패 피드백 일원화)
-- Ant Design Form `validator` 실시간 피드백 (이메일 중복 비동기 검증 등)
-- WCAG 2.1 AA 기준 접근성 — ARIA label, 키보드 네비게이션, 색상 대비
+**선행 조건**: Phase 8 완료
+
+### 작업 순서
+
+1. Ant Design `ConfigProvider` theme token 기반 다크모드 구현 + `localStorage` 저장
+2. 반응형 레이아웃 — 모바일(375px)에서 Sider → Drawer 메뉴 전환
+3. `Skeleton` 컴포넌트 — 태스크 목록 로딩 중 스켈레톤 UI 표시
+4. React `ErrorBoundary` 클래스 컴포넌트 — 페이지 단위 에러 격리 + fallback UI
+5. 전역 알림 시스템 — `AntdNotificationProvider` (성공·실패 토스트 일원화)
+6. 폼 비동기 검증 — 이메일 중복 여부 실시간 서버 검증
+7. ARIA 속성 추가 + Tab 키 네비게이션 전체 경로 검증
+
+### 구현 명세
+
+**신규/수정 파일**
+```
+frontend/src/
+  components/
+    ErrorBoundary.tsx          # componentDidCatch + fallback prop
+    ThemeToggle.tsx            # 다크/라이트 토글 버튼
+    SkeletonTable.tsx          # Ant Design Skeleton rows
+    NotificationProvider.tsx   # Context + antd notification API
+  hooks/
+    useTheme.ts                # localStorage 'theme' ↔ antd algorithm
+    useCheckEmail.ts           # 이메일 중복 비동기 검증 훅
+```
+
+**다크모드 토큰 적용**
+```typescript
+theme={{
+  algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
+  token: { colorPrimary: '#6366f1' }
+}}
+```
+
+**Error Boundary 사용 예시**
+```tsx
+<ErrorBoundary fallback={<ErrorPage />}>
+  <TasksPage />
+</ErrorBoundary>
+```
+
+### 완료 기준 (AC)
+
+- [ ] 다크모드 토글 후 새로고침해도 다크모드 유지 (`localStorage` 확인)
+- [ ] 모바일(375px) — 로그인·태스크 조회·생성 기능 모두 사용 가능
+- [ ] 태스크 목록 로딩 중 스켈레톤 UI 노출, 데이터 수신 후 즉시 교체
+- [ ] API 에러 발생 시 ErrorBoundary fallback UI 노출, 앱 전체 크래시 없음
+- [ ] Tab 키만으로 로그인 폼 완성 → 제출 가능
+- [ ] Lighthouse Accessibility ≥ 90 (ARIA, 색상 대비 포함)
 
 ---
 
 ## Phase 10 — PostgreSQL 전환 + Docker Compose 통합 🚧 예정
 
-> 로컬 H2에서 실제 RDB로 전환하여 프로덕션 유사 환경 구축
+> H2 → 실제 RDB · Flyway 마이그레이션 · 4-컨테이너 스택
 
-- H2 → PostgreSQL 마이그레이션 (`application-prod.yml`)
-- Flyway 마이그레이션 스크립트 (`V1__init.sql`, `V2__add_project.sql` …)
-- `auth/Dockerfile` Multi-stage (Maven build → JRE 21 slim)
-- `frontend/Dockerfile` Multi-stage (Node build → Nginx serve)
-- `docker-compose.yml` — PostgreSQL + Backend + Frontend + (Redis) 4-컨테이너
-- Nginx `/api/*` 리버스 프록시 설정 (`proxy_pass`)
-- `docker compose up -d` 한 명령으로 전체 스택 실행
+**선행 조건**: Phase 9 완료
+
+### 작업 순서
+
+1. `pom.xml` — PostgreSQL JDBC 드라이버 + Flyway 의존성 추가
+2. `application-prod.yml` — PostgreSQL DataSource 설정
+3. `src/main/resources/db/migration/` — Flyway 스크립트 작성 (`V1__init.sql` …)
+4. H2 테스트 환경 유지 (`application-test.yml`), 프로덕션만 PostgreSQL 전환
+5. `auth/Dockerfile` — Multi-stage (Maven → JRE 21-slim)
+6. `frontend/Dockerfile` — Multi-stage (Node build → Nginx)
+7. `nginx.conf` — `/api/*` → `backend:8080` 리버스 프록시
+8. `docker-compose.yml` — PostgreSQL + Redis + Backend + Frontend + 환경변수
+9. `docker compose up -d` 통합 실행 검증
+
+### 구현 명세
+
+**Flyway 스크립트 목록**
+```
+db/migration/
+  V1__init_users_tasks.sql
+  V2__add_refresh_tokens.sql
+  V3__add_projects.sql
+  V4__add_task_priority_assignee.sql
+  V5__add_comments.sql
+  V6__add_indexes.sql
+```
+
+**docker-compose.yml 서비스 구성**
+```yaml
+services:
+  postgres:   image: postgres:16-alpine, port 5432
+  redis:      image: redis:7-alpine, port 6379
+  backend:    build: ./auth, port 8080, depends_on: postgres, redis
+  frontend:   build: ./frontend, port 80, depends_on: backend
+```
+
+**Nginx 프록시 규칙**
+```nginx
+location /api/ {
+    proxy_pass http://backend:8080;
+}
+location / {
+    root /usr/share/nginx/html;
+    try_files $uri /index.html;
+}
+```
+
+### 완료 기준 (AC)
+
+- [ ] `docker compose up -d` 한 명령으로 전체 스택 구동
+- [ ] `localhost` 접속 → 회원가입·로그인·태스크 CRUD 전 기능 동작
+- [ ] `mvn flyway:migrate` 재실행 시 이미 적용된 스크립트 건너뜀 (멱등성)
+- [ ] `docker compose down && docker compose up -d` 후 데이터 유지 (Volume 확인)
+- [ ] 백엔드 컨테이너 이미지 크기 ≤ 200MB (Multi-stage 효과)
 
 ---
 
 ## Phase 11 — CI/CD 🚧 예정
 
-> 코드 품질 게이트를 자동화하여 신뢰할 수 있는 배포 파이프라인 구성
+> GitHub Actions · 커버리지 게이트 · Docker 이미지 GHCR 푸시
 
-- GitHub Actions `ci.yml`:
-  - Pull Request: Java 빌드 + 테스트 + JaCoCo 커버리지 코멘트
-  - Pull Request: React 빌드 + Vitest + Playwright E2E
-  - main merge: Docker 이미지 빌드 + GHCR 푸시 (`ghcr.io/…`)
-- Branch protection rule — CI 통과 필수
-- Dependabot — 의존성 자동 업데이트 PR
+**선행 조건**: Phase 10 완료
+
+### 작업 순서
+
+1. Branch protection rule — `main` PR 병합 전 CI 통과 필수
+2. `ci.yml` — PR 트리거: Java 빌드 + Testcontainers 테스트 + JaCoCo 커버리지 코멘트
+3. `ci.yml` — PR 트리거: React 빌드 + Vitest + Playwright E2E
+4. `ci.yml` — `main` 병합 트리거: Docker 이미지 빌드 + GHCR 푸시
+5. Dependabot 설정 (`dependabot.yml`)
+
+### 구현 명세
+
+**워크플로우 파일**
+```
+.github/
+  workflows/
+    ci-backend.yml    # PR: mvn verify + JaCoCo 커버리지 PR 코멘트
+    ci-frontend.yml   # PR: npm build + vitest + playwright
+    cd-docker.yml     # main merge: docker build + push to ghcr.io
+  dependabot.yml      # maven + npm 자동 업데이트
+```
+
+**JaCoCo PR 코멘트 예시**
+```
+## Coverage Report
+| 패키지 | 라인 | 브랜치 |
+|--------|------|--------|
+| service | 87% | 82% |
+| controller | 91% | 78% |
+| **전체** | **85%** | **76%** |
+```
+
+**GHCR 이미지 태그 전략**
+```
+ghcr.io/iee129/taskhive-backend:latest
+ghcr.io/iee129/taskhive-backend:sha-{commit_sha}
+ghcr.io/iee129/taskhive-frontend:latest
+```
+
+### 완료 기준 (AC)
+
+- [ ] PR 오픈 시 백엔드·프론트엔드 CI 자동 실행, 커버리지 미달 시 빌드 실패
+- [ ] PR에 JaCoCo 커버리지 수치 자동 코멘트
+- [ ] `main` 병합 시 GHCR에 이미지 자동 푸시 (Actions 로그 확인)
+- [ ] Dependabot PR 자동 생성 확인 (최소 1개)
+- [ ] 테스트 실패하는 코드 PR 시 GitHub Checks 빨간 표시
 
 ---
 
-## Phase 12 — Kubernetes 배포 (선택) 🚧 예정
+## Phase 12 — Kubernetes 배포 🚧 예정 (선택)
 
 > 컨테이너 오케스트레이션 이해도를 코드로 증명
 
-- `Namespace`, `ConfigMap`, `Secret` 분리
-- PostgreSQL `StatefulSet` + `PersistentVolumeClaim`
-- Backend / Frontend `Deployment` + `ClusterIP Service`
-- Nginx `Ingress` — 도메인 라우팅 (`/api/*` → backend, `/*` → frontend)
-- `HorizontalPodAutoscaler` — CPU 기반 자동 스케일
-- minikube 또는 kind 로컬 검증
+**선행 조건**: Phase 11 완료
+
+매니페스트 목록, HPA, Ingress 설정, minikube 검증 — 취업 준비 상황에 따라 진행 여부 결정
 
 ---
 
@@ -192,5 +567,5 @@
 
 - 실시간 알림 (WebSocket + STOMP)
 - OAuth2 소셜 로그인 (Google, GitHub)
-- 파일 첨부 (AWS S3 / MinIO Presigned URL)
-- 팀 초대 이메일 (JavaMailSender + 토큰 링크)
+- 파일 첨부 (MinIO Presigned URL)
+- 팀 초대 이메일 (JavaMailSender)
