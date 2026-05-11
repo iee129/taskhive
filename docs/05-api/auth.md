@@ -23,13 +23,13 @@ Content-Type: application/json
 |------|------|------|------|
 | `email` | string | 필수 | 이메일 형식, 중복 불가 |
 | `password` | string | 필수 | 8자 이상 |
-| `name` | string | 필수 | 100자 이하 |
+| `name` | string | 필수 | 2~50자 |
 
 ### 응답 (200 OK)
 
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyQGV4YW1wbGUuY29tIn0...",
+  "token": "eyJhbGciOiJIUzM4NCJ9...",
   "email": "user@example.com",
   "name": "홍길동"
 }
@@ -37,11 +37,10 @@ Content-Type: application/json
 
 ### 에러 응답
 
-| 상황 | 코드 | 메시지 |
-|------|------|--------|
-| 이메일 형식 오류 | 400 | `email: 올바른 이메일 형식이 아닙니다` |
-| 비밀번호 8자 미만 | 400 | `password: 비밀번호는 8자 이상이어야 합니다` |
-| 이메일 중복 | 409 | `이미 사용 중인 이메일입니다` |
+| 상황 | 코드 | 응답 형식 |
+|------|------|----------|
+| 이메일 형식 오류 / 이름 길이 위반 / 비밀번호 8자 미만 | 400 | `{"errors": ["field: 메시지"]}` |
+| 이메일 중복 | 400 | `{"error": "Email already in use: ..."}` |
 
 ---
 
@@ -72,7 +71,7 @@ Content-Type: application/json
 
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyQGV4YW1wbGUuY29tIn0...",
+  "token": "eyJhbGciOiJIUzM4NCJ9...",
   "email": "user@example.com",
   "name": "홍길동"
 }
@@ -80,9 +79,39 @@ Content-Type: application/json
 
 ### 에러 응답
 
-| 상황 | 코드 | 메시지 |
-|------|------|--------|
-| 이메일 또는 비밀번호 불일치 | 401 | `이메일 또는 비밀번호가 올바르지 않습니다` |
+| 상황 | 코드 | 응답 형식 |
+|------|------|----------|
+| 이메일 또는 비밀번호 불일치 | 401 | `{"error": "이메일 또는 비밀번호가 올바르지 않습니다"}` |
+
+---
+
+## GET /api/auth/me
+
+현재 로그인된 사용자 정보를 반환합니다. JWT 필수.
+
+### 요청
+
+```http
+GET /api/auth/me
+Authorization: Bearer eyJhbGciOiJIUzM4NCJ9...
+```
+
+### 응답 (200 OK)
+
+```json
+{
+  "email": "user@example.com",
+  "name": "홍길동"
+}
+```
+
+> `token` 필드는 포함되지 않습니다.
+
+### 에러 응답
+
+| 상황 | 코드 | 응답 형식 |
+|------|------|----------|
+| Authorization 헤더 없음 또는 토큰 변조/만료 | 401 | `{"error": "인증이 필요합니다"}` |
 
 ---
 
@@ -91,7 +120,7 @@ Content-Type: application/json
 발급된 `token`을 이후 모든 보호된 요청의 `Authorization` 헤더에 포함:
 
 ```http
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
+Authorization: Bearer eyJhbGciOiJIUzM4NCJ9...
 ```
 
-토큰 유효기간: **24시간**. 만료 후 재로그인 필요.
+토큰 유효기간: **1시간**. 만료 후 재로그인 필요.

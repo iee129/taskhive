@@ -14,6 +14,22 @@
 
 ---
 
+## [0.3.0] — 2026-05-12
+
+### 추가
+- `GlobalExceptionHandler` — `IllegalArgumentException` → 400, `BadCredentialsException` → 401, `MethodArgumentNotValidException` → 400 처리
+- `GET /api/auth/me` — JWT로 현재 사용자 정보 조회 엔드포인트
+- `AuthenticationEntryPoint` — 인증 실패 시 403 대신 401 JSON 응답 반환
+- `AuthServiceTest` — `getMe` 정상/예외 단위 테스트 2개 추가 (총 6개)
+- `AuthControllerTest` — 변조 JWT `/me` 401 통합 테스트 추가 (총 8개)
+
+### 수정
+- `SecurityConfig` — `/api/auth/register`, `/api/auth/login`만 permitAll (기존 `/api/auth/**` 전체에서 축소)
+- `AuthResponse` — `@JsonInclude(NON_NULL)` 적용: `/me` 응답에서 `token: null` 미노출
+- `auth/` 폴더명 변경 (기존 `backend/`)
+
+---
+
 ## [0.2.0] — 2026-05-12
 
 ### 추가

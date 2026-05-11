@@ -3,7 +3,6 @@
 ## 의존성 (pom.xml)
 
 ```xml
-<!-- 테스트 스코프 -->
 <dependency>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-test</artifactId>
@@ -19,6 +18,9 @@
 
 ## 단위 테스트 — AuthService
 
+`@ExtendWith(MockitoExtension.class)`로 Spring 컨텍스트 없이 실행.
+`AuthenticationManager`도 Mock으로 주입.
+
 ```java
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -26,63 +28,47 @@ class AuthServiceTest {
     @Mock UserRepository userRepository;
     @Mock PasswordEncoder passwordEncoder;
     @Mock JwtUtil jwtUtil;
+    @Mock AuthenticationManager authenticationManager;
+
     @InjectMocks AuthService authService;
 
-    @Test
-    void 이메일_중복_시_예외_발생() {
-        given(userRepository.existsByEmail("dup@example.com")).willReturn(true);
-
-        assertThatThrownBy(() ->
-            authService.register(new RegisterRequest("dup@example.com", "pass", "이름")))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("이미 사용 중인 이메일");
-    }
-
-    @Test
-    void 회원가입_성공_시_JWT_반환() {
-        given(userRepository.existsByEmail(any())).willReturn(false);
-        given(passwordEncoder.encode(any())).willReturn("$hashed");
-        given(userRepository.save(any())).willReturn(new User());
-        given(jwtUtil.generateToken(any())).willReturn("jwt-token");
-
-        AuthResponse response = authService.register(
-            new RegisterRequest("new@example.com", "password", "홍길동"));
-
-        assertThat(response.token()).isEqualTo("jwt-token");
-    }
+    @Test void register_정상_저장후JWT반환() { ... }
+    @Test void register_중복이메일_예외발생() { ... }
+    @Test void login_정상_JWT반환() { ... }
+    @Test void login_잘못된자격증명_예외발생() { ... }
+    @Test void getMe_정상_사용자정보반환() { ... }
+    @Test void getMe_없는이메일_예외발생() { ... }
 }
 ```
+
+총 **6개** 테스트.
 
 ## 통합 테스트 — AuthController
 
+`@SpringBootTest` + `@AutoConfigureMockMvc`로 전체 Spring 컨텍스트 기동.
+H2 인메모리 DB 사용 (`spring.profiles.active=test`).
+테스트 격리는 각 테스트마다 고유 이메일 사용으로 처리 (`@DirtiesContext` 불필요).
+
 ```java
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("test")
-class AuthControllerIntegrationTest {
+@SpringBootTest(properties = {"spring.profiles.active=test"})
+@AutoConfigureMockMvc
+class AuthControllerTest {
 
-    @Autowired TestRestTemplate restTemplate;
-    @Autowired UserRepository userRepository;
+    @Autowired MockMvc mockMvc;
+    @Autowired ObjectMapper objectMapper;
 
-    @BeforeEach
-    void setUp() { userRepository.deleteAll(); }
-
-    @Test
-    void 회원가입_후_로그인_성공() {
-        // 회원가입
-        RegisterRequest reg = new RegisterRequest("test@example.com", "pass1234", "테스터");
-        ResponseEntity<AuthResponse> regRes =
-            restTemplate.postForEntity("/api/auth/register", reg, AuthResponse.class);
-        assertThat(regRes.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(regRes.getBody().token()).isNotBlank();
-
-        // 로그인
-        LoginRequest login = new LoginRequest("test@example.com", "pass1234");
-        ResponseEntity<AuthResponse> loginRes =
-            restTemplate.postForEntity("/api/auth/login", login, AuthResponse.class);
-        assertThat(loginRes.getStatusCode()).isEqualTo(HttpStatus.OK);
-    }
+    @Test void register_정상_200_token반환() { ... }
+    @Test void register_중복이메일_400() { ... }
+    @Test void register_빈이름_400() { ... }
+    @Test void login_정상_200_token반환() { ... }
+    @Test void login_잘못된비밀번호_401() { ... }
+    @Test void me_JWT없음_401() { ... }
+    @Test void me_변조JWT_401() { ... }
+    @Test void me_유효한JWT_200_사용자정보반환() { ... }
 }
 ```
+
+총 **8개** 테스트.
 
 ## application-test.yml
 
@@ -96,16 +82,24 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
-    show-sql: false
 
-jwt:
-  secret: test-secret-key-at-least-32-chars-long
-  expiration: 3600000
+taskhive:
+  jwt:
+    secret: test-secret-key-for-testing-only-must-be-at-least-32chars
+    expiration-ms: 3600000
+  cors:
+    allowed-origins: http://localhost:5173
 ```
 
 ## 실행
 
 ```bash
-mvn test -f backend/pom.xml
-mvn test -Dtest=AuthServiceTest -f backend/pom.xml   # 단일 테스트
+# 전체 테스트
+mvn test -f auth/pom.xml
+
+# 단일 클래스
+mvn test -Dtest=AuthServiceTest -f auth/pom.xml
+mvn test -Dtest=AuthControllerTest -f auth/pom.xml
 ```
+
+현재 총 **14개** 테스트 (AuthServiceTest 6 + AuthControllerTest 8).
