@@ -90,6 +90,32 @@ class AuthServiceTest {
     }
 
     @Test
+    void getMe_정상_사용자정보반환() {
+        User user = User.builder()
+                .email("test@example.com")
+                .name("홍길동")
+                .password("encoded")
+                .build();
+
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+
+        AuthResponse response = authService.getMe("test@example.com");
+
+        assertThat(response.getEmail()).isEqualTo("test@example.com");
+        assertThat(response.getName()).isEqualTo("홍길동");
+        assertThat(response.getToken()).isNull();
+    }
+
+    @Test
+    void getMe_없는이메일_예외발생() {
+        when(userRepository.findByEmail("unknown@example.com")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.getMe("unknown@example.com"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("User not found");
+    }
+
+    @Test
     void login_잘못된자격증명_예외발생() {
         AuthRequest req = new AuthRequest();
         req.setEmail("test@example.com");

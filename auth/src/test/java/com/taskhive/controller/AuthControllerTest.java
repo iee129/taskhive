@@ -115,6 +115,13 @@ class AuthControllerTest {
     }
 
     @Test
+    void me_변조JWT_401() throws Exception {
+        mockMvc.perform(get(ME_URL)
+                        .header("Authorization", "Bearer invalid.token.here"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void me_유효한JWT_200_사용자정보반환() throws Exception {
         String email = "me@example.com";
         MvcResult result = mockMvc.perform(post(REGISTER_URL)
