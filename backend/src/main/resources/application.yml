@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: taskhive-backend
+  profiles:
+    active: dev
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    open-in-view: false
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+taskhive:
+  jwt:
+    secret: ${JWT_SECRET:changeme-replace-in-production-with-256bit-key}
+    expiration-ms: 86400000
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:5173}
