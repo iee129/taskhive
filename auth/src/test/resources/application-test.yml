@@ -16,5 +16,6 @@ taskhive:
   jwt:
     secret: test-secret-key-for-testing-only-must-be-at-least-32chars
     expiration-ms: 3600000
+    refresh-expiration-ms: 604800000
   cors:
     allowed-origins: http://localhost:5173
