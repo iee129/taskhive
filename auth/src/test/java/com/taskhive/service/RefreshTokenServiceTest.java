@@ -82,7 +82,7 @@ class RefreshTokenServiceTest {
                 .expiresAt(LocalDateTime.now().plusDays(7))
                 .build();
 
-        when(refreshTokenRepository.findByToken("old-token")).thenReturn(Optional.of(existing));
+        when(refreshTokenRepository.findByTokenForUpdate("old-token")).thenReturn(Optional.of(existing));
         when(refreshTokenRepository.save(any())).thenReturn(rotated);
 
         RefreshToken result = refreshTokenService.rotate("old-token");
@@ -93,7 +93,7 @@ class RefreshTokenServiceTest {
 
     @Test
     void rotate_존재하지않는토큰_예외발생() {
-        when(refreshTokenRepository.findByToken("invalid")).thenReturn(Optional.empty());
+        when(refreshTokenRepository.findByTokenForUpdate("invalid")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> refreshTokenService.rotate("invalid"))
                 .isInstanceOf(InvalidTokenException.class)
@@ -107,7 +107,7 @@ class RefreshTokenServiceTest {
                 .user(user)
                 .expiresAt(LocalDateTime.now().minusDays(1))
                 .build();
-        when(refreshTokenRepository.findByToken("expired-token")).thenReturn(Optional.of(expired));
+        when(refreshTokenRepository.findByTokenForUpdate("expired-token")).thenReturn(Optional.of(expired));
 
         assertThatThrownBy(() -> refreshTokenService.rotate("expired-token"))
                 .isInstanceOf(InvalidTokenException.class)

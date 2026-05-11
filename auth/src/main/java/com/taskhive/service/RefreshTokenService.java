@@ -34,7 +34,7 @@ public class RefreshTokenService {
 
     @Transactional
     public RefreshToken rotate(String tokenValue) {
-        RefreshToken existing = refreshTokenRepository.findByToken(tokenValue)
+        RefreshToken existing = refreshTokenRepository.findByTokenForUpdate(tokenValue)
                 .orElseThrow(() -> new InvalidTokenException("유효하지 않은 Refresh Token입니다"));
 
         if (existing.isExpired()) {

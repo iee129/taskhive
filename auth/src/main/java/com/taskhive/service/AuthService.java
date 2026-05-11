@@ -4,7 +4,6 @@ import com.taskhive.config.JwtUtil;
 import com.taskhive.dto.*;
 import com.taskhive.model.RefreshToken;
 import com.taskhive.model.User;
-import com.taskhive.model.enums.Role;
 import com.taskhive.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.*;
@@ -32,7 +31,6 @@ public class AuthService {
                 .name(request.getName())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role(Role.USER)
                 .build();
         userRepository.save(user);
         String token = jwtUtil.generateToken(user.getEmail());
