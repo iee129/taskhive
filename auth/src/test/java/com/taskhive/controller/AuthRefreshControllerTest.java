@@ -106,9 +106,9 @@ class AuthRefreshControllerTest {
     }
 
     @Test
-    void refresh_쿠키없음_400() throws Exception {
+    void refresh_쿠키없음_401() throws Exception {
         mockMvc.perform(post(REFRESH_URL))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -120,14 +120,14 @@ class AuthRefreshControllerTest {
     }
 
     @Test
-    void logout_후_refresh시도_400() throws Exception {
+    void logout_후_refresh시도_401() throws Exception {
         Cookie refreshCookie = registerAndGetRefreshCookie("logout2@example.com");
 
         mockMvc.perform(post(LOGOUT_URL).cookie(refreshCookie))
                 .andExpect(status().isNoContent());
 
         mockMvc.perform(post(REFRESH_URL).cookie(refreshCookie))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

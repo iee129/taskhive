@@ -1,5 +1,6 @@
 package com.taskhive.service;
 
+import com.taskhive.exception.InvalidTokenException;
 import com.taskhive.model.RefreshToken;
 import com.taskhive.model.User;
 import com.taskhive.model.enums.Role;
@@ -95,7 +96,7 @@ class RefreshTokenServiceTest {
         when(refreshTokenRepository.findByToken("invalid")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> refreshTokenService.rotate("invalid"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidTokenException.class)
                 .hasMessageContaining("유효하지 않은");
     }
 
@@ -109,7 +110,7 @@ class RefreshTokenServiceTest {
         when(refreshTokenRepository.findByToken("expired-token")).thenReturn(Optional.of(expired));
 
         assertThatThrownBy(() -> refreshTokenService.rotate("expired-token"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidTokenException.class)
                 .hasMessageContaining("만료된");
         verify(refreshTokenRepository).delete(expired);
     }
@@ -144,6 +145,6 @@ class RefreshTokenServiceTest {
         when(refreshTokenRepository.findByToken("expired")).thenReturn(Optional.of(expired));
 
         assertThatThrownBy(() -> refreshTokenService.getUserByToken("expired"))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(InvalidTokenException.class);
     }
 }

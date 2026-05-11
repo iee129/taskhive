@@ -1,5 +1,6 @@
 package com.taskhive.service;
 
+import com.taskhive.exception.InvalidTokenException;
 import com.taskhive.model.RefreshToken;
 import com.taskhive.model.User;
 import com.taskhive.repository.RefreshTokenRepository;
@@ -34,11 +35,11 @@ public class RefreshTokenService {
     @Transactional
     public RefreshToken rotate(String tokenValue) {
         RefreshToken existing = refreshTokenRepository.findByToken(tokenValue)
-                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 Refresh Token입니다"));
+                .orElseThrow(() -> new InvalidTokenException("유효하지 않은 Refresh Token입니다"));
 
         if (existing.isExpired()) {
             refreshTokenRepository.delete(existing);
-            throw new IllegalArgumentException("만료된 Refresh Token입니다");
+            throw new InvalidTokenException("만료된 Refresh Token입니다");
         }
 
         return issue(existing.getUser());
@@ -53,6 +54,6 @@ public class RefreshTokenService {
         return refreshTokenRepository.findByToken(tokenValue)
                 .filter(t -> !t.isExpired())
                 .map(RefreshToken::getUser)
-                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 Refresh Token입니다"));
+                .orElseThrow(() -> new InvalidTokenException("유효하지 않은 Refresh Token입니다"));
     }
 }
