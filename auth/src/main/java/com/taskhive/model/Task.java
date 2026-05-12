@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 public class Task extends BaseEntity {
 
     public enum Status { TODO, IN_PROGRESS, DONE }
+    public enum Priority { LOW, MEDIUM, HIGH }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,6 +26,11 @@ public class Task extends BaseEntity {
     @Column(nullable = false)
     @Builder.Default
     private Status status = Status.TODO;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private Priority priority = Priority.MEDIUM;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id")

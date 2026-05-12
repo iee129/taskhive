@@ -26,6 +26,12 @@ public class TaskService {
                 .toList();
     }
 
+    public List<TaskResponse> getFilteredTasks(Task.Status status, Task.Priority priority, String search) {
+        return taskRepository.findFiltered(status, priority, search).stream()
+                .map(TaskResponse::from)
+                .toList();
+    }
+
     public TaskResponse getTask(Long id) {
         return taskRepository.findByIdAndDeletedAtIsNull(id)
                 .map(TaskResponse::from)
@@ -38,6 +44,7 @@ public class TaskService {
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .status(request.getStatus() != null ? request.getStatus() : Task.Status.TODO)
+                .priority(request.getPriority() != null ? request.getPriority() : Task.Priority.MEDIUM)
                 .dueDate(request.getDueDate())
                 .build();
 
@@ -61,6 +68,7 @@ public class TaskService {
         task.setTitle(request.getTitle());
         task.setDescription(request.getDescription());
         if (request.getStatus() != null) task.setStatus(request.getStatus());
+        if (request.getPriority() != null) task.setPriority(request.getPriority());
         task.setDueDate(request.getDueDate());
         return TaskResponse.from(taskRepository.save(task));
     }

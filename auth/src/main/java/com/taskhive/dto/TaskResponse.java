@@ -12,6 +12,7 @@ public class TaskResponse {
     private String title;
     private String description;
     private Task.Status status;
+    private Task.Priority priority;
     private Long projectId;
     private Long assigneeId;
     private LocalDate dueDate;
@@ -23,6 +24,7 @@ public class TaskResponse {
                 .title(task.getTitle())
                 .description(task.getDescription())
                 .status(task.getStatus())
+                .priority(task.getPriority())
                 .projectId(task.getProject() != null ? task.getProject().getId() : null)
                 .assigneeId(task.getAssignee() != null ? task.getAssignee().getId() : null)
                 .dueDate(task.getDueDate())

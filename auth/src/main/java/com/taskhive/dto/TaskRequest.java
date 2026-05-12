@@ -12,6 +12,7 @@ public class TaskRequest {
     private String title;
     private String description;
     private Task.Status status;
+    private Task.Priority priority;
     private Long projectId;
     private Long assigneeId;
     private LocalDate dueDate;

@@ -1,41 +1,44 @@
-import { Layout as AntLayout, Menu, Button, theme } from 'antd';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Layout as AntLayout, Menu } from 'antd';
+import { useNavigate, useLocation, Outlet } from 'react-router-dom';
+import {
+  CheckSquareOutlined, UserOutlined, LogoutOutlined,
+  AppstoreOutlined, BarChartOutlined,
+} from '@ant-design/icons';
 
-const { Header, Sider, Content } = AntLayout;
+const { Sider, Content } = AntLayout;
 
 export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { token } = theme.useToken();
-
-  const menuItems = [
-    { key: '/tasks', label: '태스크 목록' },
-    { key: '/profile', label: '내 정보' },
-  ];
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     navigate('/login');
   };
 
+  const menuItems = [
+    { key: '/tasks', icon: <CheckSquareOutlined />, label: '태스크' },
+    { key: '/kanban', icon: <AppstoreOutlined />, label: '칸반 보드' },
+    { key: '/stats', icon: <BarChartOutlined />, label: '통계' },
+    { key: '/profile', icon: <UserOutlined />, label: '프로필' },
+    { key: 'logout', icon: <LogoutOutlined />, label: '로그아웃', danger: true },
+  ];
+
   return (
     <AntLayout style={{ minHeight: '100vh' }}>
-      <Sider theme="light" style={{ borderRight: `1px solid ${token.colorBorderSecondary}` }}>
-        <div style={{ padding: '16px', fontWeight: 700, fontSize: 18, color: token.colorPrimary }}>
+      <Sider theme="light" breakpoint="lg" collapsedWidth={0}>
+        <div style={{ padding: '20px 16px', fontWeight: 700, fontSize: 18, color: '#1677ff' }}>
           TaskHive
         </div>
         <Menu
           mode="inline"
           selectedKeys={[location.pathname]}
           items={menuItems}
-          onClick={({ key }) => navigate(key)}
+          onClick={({ key }) => key === 'logout' ? handleLogout() : navigate(key)}
         />
       </Sider>
       <AntLayout>
-        <Header style={{ background: token.colorBgContainer, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', padding: '0 24px', borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
-          <Button onClick={handleLogout}>로그아웃</Button>
-        </Header>
-        <Content style={{ margin: 24 }}>
+        <Content style={{ padding: 24, background: '#fff' }}>
           <Outlet />
         </Content>
       </AntLayout>
