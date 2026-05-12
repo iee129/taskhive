@@ -1,13 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Table, Button, Modal, Form, Input, Select, DatePicker, Popconfirm, message, Space, Tag, Drawer, Divider } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { RobotOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import { getTasks, createTask, updateTask, deleteTask } from '../api/tasks';
 import type { TaskResponse, TaskRequest, TaskStatus, TaskPriority } from '../types/task';
 import FilterBar from '../components/FilterBar';
 import CommentList from '../components/CommentList';
 import AiTaskInput from '../components/AiTaskInput';
+import { useTasks, type TaskFilter } from '../hooks/useTasks';
+import { useCreateTask, useUpdateTask, useDeleteTask } from '../hooks/useMutateTask';
 
 const STATUS_LABEL: Record<TaskStatus, string> = {
   TODO: '할 일', IN_PROGRESS: '진행 중', DONE: '완료',
@@ -23,8 +24,7 @@ const PRIORITY_COLOR: Record<TaskPriority, string> = {
 };
 
 export default function TasksPage() {
-  const [tasks, setTasks] = useState<TaskResponse[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [filter, setFilter] = useState<TaskFilter>({});
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<TaskResponse | null>(null);
   const [drawerTask, setDrawerTask] = useState<TaskResponse | null>(null);
@@ -32,34 +32,18 @@ export default function TasksPage() {
   const [form] = Form.useForm();
   const [messageApi, contextHolder] = message.useMessage();
 
-  const [filterStatus, setFilterStatus] = useState<TaskStatus | undefined>();
-  const [filterPriority, setFilterPriority] = useState<TaskPriority | undefined>();
-  const [filterSearch, setFilterSearch] = useState('');
+  const { data: tasks = [], isLoading } = useTasks(filter);
+  const createMutation  = useCreateTask();
+  const updateMutation  = useUpdateTask();
+  const deleteMutation  = useDeleteTask();
 
-  const fetchTasks = async () => {
-    setLoading(true);
-    try {
-      setTasks(await getTasks({
-        status: filterStatus,
-        priority: filterPriority,
-        search: filterSearch || undefined,
-      }));
-    } catch {
-      messageApi.error('태스크 목록을 불러오지 못했습니다');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { fetchTasks(); }, [filterStatus, filterPriority, filterSearch]);
-
-  const openCreate = () => {
+  const openCreate = useCallback(() => {
     setEditingTask(null);
     form.resetFields();
     setModalOpen(true);
-  };
+  }, [form]);
 
-  const openEdit = (task: TaskResponse) => {
+  const openEdit = useCallback((task: TaskResponse) => {
     setEditingTask(task);
     form.setFieldsValue({
       title: task.title,
@@ -69,7 +53,7 @@ export default function TasksPage() {
       dueDate: task.dueDate ? dayjs(task.dueDate) : undefined,
     });
     setModalOpen(true);
-  };
+  }, [form]);
 
   const handleSubmit = async () => {
     try {
@@ -82,29 +66,27 @@ export default function TasksPage() {
         dueDate: values.dueDate ? values.dueDate.format('YYYY-MM-DD') : undefined,
       };
       if (editingTask) {
-        await updateTask(editingTask.id, payload);
+        await updateMutation.mutateAsync({ id: editingTask.id, data: payload });
         messageApi.success('태스크가 수정되었습니다');
       } else {
-        await createTask(payload);
+        await createMutation.mutateAsync(payload);
         messageApi.success('태스크가 생성되었습니다');
       }
       setModalOpen(false);
-      fetchTasks();
     } catch (err: any) {
       if (err?.errorFields) return;
       messageApi.error('저장에 실패했습니다');
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = useCallback(async (id: number) => {
     try {
-      await deleteTask(id);
+      await deleteMutation.mutateAsync(id);
       messageApi.success('태스크가 삭제되었습니다');
-      fetchTasks();
     } catch {
       messageApi.error('삭제에 실패했습니다');
     }
-  };
+  }, [deleteMutation, messageApi]);
 
   const columns: ColumnsType<TaskResponse> = [
     {
@@ -148,16 +130,16 @@ export default function TasksPage() {
       </div>
 
       <FilterBar
-        status={filterStatus}
-        priority={filterPriority}
-        search={filterSearch}
-        onStatusChange={setFilterStatus}
-        onPriorityChange={setFilterPriority}
-        onSearchChange={setFilterSearch}
-        onClear={() => { setFilterStatus(undefined); setFilterPriority(undefined); setFilterSearch(''); }}
+        status={filter.status}
+        priority={filter.priority}
+        search={filter.search}
+        onStatusChange={(status) => setFilter((f) => ({ ...f, status }))}
+        onPriorityChange={(priority) => setFilter((f) => ({ ...f, priority }))}
+        onSearchChange={(search) => setFilter((f) => ({ ...f, search: search || undefined }))}
+        onClear={() => setFilter({})}
       />
 
-      <Table rowKey="id" columns={columns} dataSource={tasks} loading={loading} />
+      <Table rowKey="id" columns={columns} dataSource={tasks} loading={isLoading} />
 
       <Modal
         title={editingTask ? '태스크 수정' : '새 태스크'}
@@ -208,7 +190,7 @@ export default function TasksPage() {
         )}
       </Drawer>
 
-      <AiTaskInput open={aiOpen} onClose={() => setAiOpen(false)} onCreated={fetchTasks} />
+      <AiTaskInput open={aiOpen} onClose={() => setAiOpen(false)} onCreated={() => {}} />
     </>
   );
 }

@@ -21,7 +21,7 @@ public class TaskService {
     private final UserRepository userRepository;
 
     public List<TaskResponse> getAllTasks() {
-        return taskRepository.findAllByDeletedAtIsNull().stream()
+        return taskRepository.findAllWithAssociations().stream()
                 .map(TaskResponse::from)
                 .toList();
     }

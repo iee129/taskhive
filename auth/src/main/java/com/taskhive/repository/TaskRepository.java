@@ -16,7 +16,12 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     long countByStatusAndDeletedAtIsNull(Task.Status status);
     long countByPriorityAndDeletedAtIsNull(Task.Priority priority);
 
-    @Query("SELECT t FROM Task t WHERE t.deletedAt IS NULL " +
+    @Query("SELECT t FROM Task t LEFT JOIN FETCH t.assignee LEFT JOIN FETCH t.project " +
+           "WHERE t.deletedAt IS NULL")
+    List<Task> findAllWithAssociations();
+
+    @Query("SELECT t FROM Task t LEFT JOIN FETCH t.assignee LEFT JOIN FETCH t.project " +
+           "WHERE t.deletedAt IS NULL " +
            "AND (:status IS NULL OR t.status = :status) " +
            "AND (:priority IS NULL OR t.priority = :priority) " +
            "AND (:search IS NULL OR LOWER(t.title) LIKE LOWER(CONCAT('%', :search, '%')))")

@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Input, Select, Space, Button } from 'antd';
 import { SearchOutlined, ClearOutlined } from '@ant-design/icons';
 import type { TaskStatus, TaskPriority } from '../types/task';
@@ -24,7 +25,7 @@ const PRIORITY_OPTIONS = [
   { value: 'LOW', label: '낮음' },
 ];
 
-export default function FilterBar({
+const FilterBar = memo(function FilterBar({
   status, priority, search,
   onStatusChange, onPriorityChange, onSearchChange, onClear,
 }: FilterBarProps) {
@@ -57,4 +58,6 @@ export default function FilterBar({
       <Button icon={<ClearOutlined />} onClick={onClear}>초기화</Button>
     </Space>
   );
-}
+});
+
+export default FilterBar;

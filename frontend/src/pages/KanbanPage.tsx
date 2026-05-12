@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
 import { Card, Typography, Tag, Button, Spin, Space, message } from 'antd';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { PlusOutlined } from '@ant-design/icons';
-import { getTasks, updateTask } from '../api/tasks';
-import type { TaskResponse, TaskStatus, TaskRequest } from '../types/task';
+import type { TaskStatus, TaskRequest } from '../types/task';
+import { useTasks } from '../hooks/useTasks';
+import { useOptimisticTaskStatus } from '../hooks/useMutateTask';
 
 const COLUMNS: { key: TaskStatus; label: string; color: string }[] = [
   { key: 'TODO', label: '할 일', color: '#f0f0f0' },
@@ -19,18 +19,9 @@ const PRIORITY_LABEL: Record<string, string> = {
 };
 
 export default function KanbanPage() {
-  const [tasks, setTasks] = useState<TaskResponse[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { data: tasks = [], isLoading } = useTasks();
+  const optimisticStatus = useOptimisticTaskStatus();
   const [messageApi, contextHolder] = message.useMessage();
-
-  const fetchTasks = async () => {
-    setLoading(true);
-    try { setTasks(await getTasks()); }
-    catch { messageApi.error('태스크 목록 로드 실패'); }
-    finally { setLoading(false); }
-  };
-
-  useEffect(() => { fetchTasks(); }, []);
 
   const getColumnTasks = (status: TaskStatus) =>
     tasks.filter((t) => t.status === status);
@@ -42,26 +33,22 @@ export default function KanbanPage() {
     const task = tasks.find((t) => t.id === taskId);
     if (!task || task.status === newStatus) return;
 
-    setTasks((prev) =>
-      prev.map((t) => t.id === taskId ? { ...t, status: newStatus } : t)
-    );
+    const payload: TaskRequest = {
+      title: task.title,
+      description: task.description,
+      status: newStatus,
+      priority: task.priority,
+      dueDate: task.dueDate,
+    };
 
     try {
-      const payload: TaskRequest = {
-        title: task.title,
-        description: task.description,
-        status: newStatus,
-        priority: task.priority,
-        dueDate: task.dueDate,
-      };
-      await updateTask(taskId, payload);
+      await optimisticStatus.mutateAsync({ id: taskId, data: payload });
     } catch {
       messageApi.error('상태 변경 실패');
-      fetchTasks();
     }
   };
 
-  if (loading) return <Spin size="large" style={{ display: 'block', marginTop: 80 }} />;
+  if (isLoading) return <Spin size="large" style={{ display: 'block', marginTop: 80 }} />;
 
   return (
     <div>

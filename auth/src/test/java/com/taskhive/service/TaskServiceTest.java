@@ -44,14 +44,14 @@ class TaskServiceTest {
 
     @Test
     void getAllTasks_빈목록_빈리스트반환() {
-        when(taskRepository.findAllByDeletedAtIsNull()).thenReturn(List.of());
+        when(taskRepository.findAllWithAssociations()).thenReturn(List.of());
         assertThat(taskService.getAllTasks()).isEmpty();
     }
 
     @Test
     void getAllTasks_데이터있음_매핑된리스트반환() {
         Task task = buildTask(1L, "테스트 태스크", Task.Status.TODO, Task.Priority.MEDIUM);
-        when(taskRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(task));
+        when(taskRepository.findAllWithAssociations()).thenReturn(List.of(task));
 
         List<TaskResponse> result = taskService.getAllTasks();
 
