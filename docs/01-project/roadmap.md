@@ -699,13 +699,58 @@ ghcr.io/iee129/taskhive-frontend:latest
 
 ---
 
-## Phase 12 — Kubernetes 배포 🚧 예정 (선택)
+## Phase 12 — Kubernetes 배포 ✅ 완료 (선택)
 
 > 컨테이너 오케스트레이션 이해도를 코드로 증명
 
-**브랜치**: `kubernetes` | **선행 조건**: Phase 11 완료
+**브랜치**: `kubernetes` | **완료**: 2026-05-12
 
-매니페스트 목록, HPA, Ingress 설정, minikube 검증 — 취업 준비 상황에 따라 진행 여부 결정
+### 구현 명세
+
+**매니페스트 구조**
+```
+k8s/
+  namespace.yaml              # taskhive 네임스페이스
+  secret.example.yaml         # Secret 템플릿 (base64 값 채워 사용)
+  ingress.yaml                # Nginx Ingress (taskhive.local)
+  database/
+    statefulset.yaml          # PostgreSQL StatefulSet + PVC 5Gi
+    service.yaml              # Headless ClusterIP
+  redis/
+    deployment.yaml           # Redis 7-alpine
+    service.yaml              # ClusterIP
+  backend/
+    configmap.yaml            # 환경변수 (DataSource, Redis, CORS, Ollama)
+    deployment.yaml           # replicas: 2, readiness/liveness probe
+    service.yaml              # ClusterIP :8080
+    hpa.yaml                  # CPU 60% / Memory 70%, min 2 / max 6 Pod
+  frontend/
+    deployment.yaml           # replicas: 2
+    service.yaml              # ClusterIP :80
+```
+
+**minikube 검증 절차**
+```bash
+minikube start --cpus=4 --memory=4096
+minikube addons enable ingress
+minikube addons enable metrics-server
+
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/secret.yaml   # secret.example.yaml 복사 후 값 채움
+kubectl apply -f k8s/database/ -f k8s/redis/ -f k8s/backend/ -f k8s/frontend/
+kubectl apply -f k8s/ingress.yaml
+
+echo "$(minikube ip) taskhive.local" | sudo tee -a /etc/hosts
+curl http://taskhive.local/api/actuator/health
+```
+
+### 완료 기준 (AC)
+
+- [x] `kubectl get pods -n taskhive` — 전체 Pod Running 확인
+- [x] `kubectl get hpa -n taskhive` — backend HPA CPU/Memory 메트릭 수집 확인
+- [x] `curl http://taskhive.local` → 프론트엔드, `/api/actuator/health` → 백엔드 정상 응답
+- [x] PostgreSQL StatefulSet PVC — 재시작 후 데이터 유지
+- [x] `secret.yaml` gitignore 등록 (`k8s/secret*.yaml`)
 
 ---
 

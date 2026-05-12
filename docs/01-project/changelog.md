@@ -9,7 +9,20 @@
 
 ### 추가 예정
 - Phase 6.5: **WebSocket STOMP 실시간 동기화** (칸반 보드 카드 즉시 반영)
-- Phase 12: Kubernetes 배포 (선택)
+
+---
+
+## [0.13.0] — 2026-05-12
+
+### 추가
+- `k8s/namespace.yaml` — taskhive 네임스페이스
+- `k8s/database/` — PostgreSQL StatefulSet + Headless Service + PVC 5Gi
+- `k8s/redis/` — Redis 7-alpine Deployment + ClusterIP Service
+- `k8s/backend/hpa.yaml` — HPA (CPU 60% / Memory 70%, min 2 / max 6 Pod)
+- `k8s/backend/configmap.yaml` — Redis·CORS·Ollama URL 환경변수 추가
+- `k8s/ingress.yaml` — Nginx Ingress (taskhive.local), 잘못된 rewrite-target 제거
+- `k8s/secret.example.yaml` — Secret 템플릿 (실제 `secret.yaml`은 gitignore)
+- `k8s/README.md` — minikube 전체 배포 절차, HPA 검증, 롤링 업데이트 가이드
 
 ---
 
