@@ -3,12 +3,16 @@ package com.taskhive.controller;
 import com.taskhive.dto.*;
 import com.taskhive.model.Task;
 import com.taskhive.service.TaskService;
+import com.taskhive.websocket.TaskEvent;
+import com.taskhive.websocket.TaskEventPublisher;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/tasks")
@@ -16,6 +20,7 @@ import java.util.List;
 public class TaskController {
 
     private final TaskService taskService;
+    private final TaskEventPublisher taskEventPublisher;
 
     @GetMapping
     public ResponseEntity<List<TaskResponse>> getAll(
@@ -35,18 +40,28 @@ public class TaskController {
 
     @PostMapping
     public ResponseEntity<TaskResponse> create(@Valid @RequestBody TaskRequest request) {
-        return ResponseEntity.ok(taskService.createTask(request));
+        TaskResponse response = taskService.createTask(request);
+        taskEventPublisher.publish(new TaskEvent("TASK_CREATED", response.getId(), currentUser(), response));
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<TaskResponse> update(@PathVariable Long id,
                                                @Valid @RequestBody TaskRequest request) {
-        return ResponseEntity.ok(taskService.updateTask(id, request));
+        TaskResponse response = taskService.updateTask(id, request);
+        taskEventPublisher.publish(new TaskEvent("TASK_UPDATED", id, currentUser(),
+                Map.of("status", response.getStatus(), "title", response.getTitle())));
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         taskService.deleteTask(id);
+        taskEventPublisher.publish(new TaskEvent("TASK_DELETED", id, currentUser(), Map.of()));
         return ResponseEntity.noContent().build();
+    }
+
+    private String currentUser() {
+        return SecurityContextHolder.getContext().getAuthentication().getName();
     }
 }

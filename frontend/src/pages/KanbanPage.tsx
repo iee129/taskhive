@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card, Typography, Tag, Button, Spin, Space, message } from 'antd';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { PlusOutlined } from '@ant-design/icons';
 import { getTasks, updateTask } from '../api/tasks';
 import type { TaskResponse, TaskStatus, TaskRequest } from '../types/task';
+import { useBoardSync, type TaskEvent } from '../hooks/useBoardSync';
 
 const COLUMNS: { key: TaskStatus; label: string; color: string }[] = [
   { key: 'TODO', label: '할 일', color: '#f0f0f0' },
@@ -31,6 +32,23 @@ export default function KanbanPage() {
   };
 
   useEffect(() => { fetchTasks(); }, []);
+
+  const handleBoardEvent = useCallback((event: TaskEvent) => {
+    if (event.type === 'TASK_UPDATED') {
+      const { status } = event.payload as { status?: TaskStatus; title?: string };
+      if (status) {
+        setTasks((prev) =>
+          prev.map((t) => t.id === event.taskId ? { ...t, status } : t)
+        );
+      }
+    } else if (event.type === 'TASK_CREATED') {
+      fetchTasks();
+    } else if (event.type === 'TASK_DELETED') {
+      setTasks((prev) => prev.filter((t) => t.id !== event.taskId));
+    }
+  }, []);
+
+  useBoardSync(handleBoardEvent);
 
   const getColumnTasks = (status: TaskStatus) =>
     tasks.filter((t) => t.status === status);
