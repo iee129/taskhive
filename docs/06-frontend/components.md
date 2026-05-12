@@ -55,15 +55,43 @@ interface TaskFormProps {
 | 순수 컴포넌트 | 프레젠테이션 컴포넌트는 부작용 없음 |
 | 커스텀 훅 분리 | API 호출·상태 관리는 커스텀 훅으로 분리 |
 
-## 공통 컴포넌트 (common/)
+## 공통 컴포넌트 (components/)
 
 | 컴포넌트 | 용도 |
 |---------|------|
-| `Button` | variant(primary/secondary/danger), loading state |
-| `Navbar` | 로고 + 사용자명 + 로그아웃 버튼 |
-| `LoadingSpinner` | API 로딩 중 표시 |
-| `ErrorMessage` | 에러 텍스트 표시 |
-| `StatusBadge` | TODO/IN_PROGRESS/DONE 색상 배지 |
+| `Layout` | 반응형 레이아웃 — 모바일 Drawer, 데스크탑 Sider, ThemeToggle 내장 |
+| `ThemeToggle` | 다크/라이트 모드 전환 버튼 (`SunOutlined`/`MoonOutlined`, aria-label 포함) |
+| `ErrorBoundary` | React 클래스 컴포넌트, `getDerivedStateFromError`, Ant Design Result 폴백, `reset()` |
+| `SkeletonTable` | 로딩 중 행 단위 스켈레톤 (`rows` prop, `role="status"`, `aria-label="로딩 중"`) |
+| `NotificationProvider` | `notification.useNotification()` 기반 전역 토스트 Context (`notifySuccess/Error/Warning`) |
+| `FilterBar` | React.memo 최적화, 상태·우선순위·검색 필터 |
+| `PrivateRoute` | JWT 미보유 시 `/login` 리다이렉트 |
+
+### ErrorBoundary 사용 예시
+
+```tsx
+<ErrorBoundary>
+  <TasksPage />
+</ErrorBoundary>
+
+// 커스텀 폴백
+<ErrorBoundary fallback={<div>페이지 오류</div>}>
+  <KanbanPage />
+</ErrorBoundary>
+```
+
+### NotificationProvider 사용 예시
+
+```tsx
+// main.tsx — 루트에 주입
+<NotificationProvider>
+  <App />
+</NotificationProvider>
+
+// 컴포넌트 내부
+const { notifySuccess, notifyError } = useNotification();
+notifySuccess('저장 완료', '태스크가 생성되었습니다');
+```
 
 ## 상태 분류
 

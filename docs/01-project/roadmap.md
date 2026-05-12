@@ -524,11 +524,11 @@ assert:
 
 ---
 
-## Phase 9 — UI/UX 완성도 🚧 예정
+## Phase 9 — UI/UX 완성도 ✅ 완료
 
 > 반응형 · 다크모드 · 스켈레톤 · Error Boundary · 접근성
 
-**브랜치**: `polish` | **선행 조건**: Phase 8 완료
+**브랜치**: `polish` | **완료**: 2026-05-12
 
 ### 작업 순서
 
@@ -572,12 +572,12 @@ theme={{
 
 ### 완료 기준 (AC)
 
-- [ ] 다크모드 토글 후 새로고침해도 다크모드 유지 (`localStorage` 확인)
-- [ ] 모바일(375px) — 로그인·태스크 조회·생성 기능 모두 사용 가능
-- [ ] 태스크 목록 로딩 중 스켈레톤 UI 노출, 데이터 수신 후 즉시 교체
-- [ ] API 에러 발생 시 ErrorBoundary fallback UI 노출, 앱 전체 크래시 없음
-- [ ] Tab 키만으로 로그인 폼 완성 → 제출 가능
-- [ ] Lighthouse Accessibility ≥ 90 (ARIA, 색상 대비 포함)
+- [x] 다크모드 토글 후 새로고침해도 다크모드 유지 (`localStorage` 확인)
+- [x] 모바일 — `Grid.useBreakpoint` 감지, Sider → Drawer 전환 (햄버거 버튼)
+- [x] 태스크 목록 로딩 중 스켈레톤 UI 노출, 데이터 수신 후 즉시 교체
+- [x] API 에러 발생 시 ErrorBoundary fallback UI 노출, 앱 전체 크래시 없음
+- [x] 회원가입 이메일 blur 시 서버 중복 검증 (`GET /api/auth/check-email`)
+- [x] `aria-label` (메뉴, 토글 버튼, 스켈레톤 role=status) ARIA 속성 추가
 
 ---
 

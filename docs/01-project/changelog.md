@@ -9,9 +9,30 @@
 
 ### 추가 예정
 - Phase 6.5: **WebSocket STOMP 실시간 동기화** (칸반 보드 카드 즉시 반영)
-- Phase 9: 다크모드 · 반응형 · Error Boundary
 - Phase 10: Docker Compose 통합 (PostgreSQL + Redis + Ollama)
 - Phase 11: GitHub Actions CI/CD · GHCR 이미지 푸시
+
+---
+
+## [0.10.0] — 2026-05-12
+
+### 추가
+- `ThemeContext` + `ThemeProvider` — localStorage 기반 다크/라이트 모드, `ConfigProvider` 알고리즘 동적 연결
+- `ThemeToggle` — `SunOutlined`/`MoonOutlined` 아이콘 토글 버튼, `aria-label` 접근성
+- `ErrorBoundary` — `getDerivedStateFromError`, Ant Design `Result` 폴백, `reset()` 지원
+- `SkeletonTable` — `rows` prop, `role="status"`, `aria-label="로딩 중"` 접근성
+- `NotificationProvider` — `notification.useNotification()` 기반 전역 `notifySuccess/Error/Warning` Context
+- `useCheckEmail` — 이메일 중복 비동기 검증 훅 (Ant Design validator 형식)
+- `GET /api/auth/check-email` — 이메일 사용 가능 여부 조회 (인증 불필요, `{ available: boolean }`)
+- `AuthService.isEmailTaken()` — 이메일 중복 여부 조회 메서드
+
+### 변경
+- `Layout.tsx` — `Grid.useBreakpoint` 기반 반응형: 모바일 Drawer+햄버거, 데스크탑 Sider + ThemeToggle
+- `App.tsx` — `ConfigProvider` + `useThemeContext()` 다크모드 알고리즘 적용
+- `main.tsx` — `ThemeProvider` → `QueryClientProvider` → `NotificationProvider` 중첩 구조
+- `TasksPage.tsx` — `isLoading` 시 `SkeletonTable` 렌더, 전체를 `ErrorBoundary`로 래핑
+- `RegisterPage.tsx` — 이메일 `validateTrigger="onBlur"` + `useCheckEmail` 비동기 검증
+- `SecurityConfig` — `/api/auth/check-email` permitAll 경로 추가
 
 ---
 

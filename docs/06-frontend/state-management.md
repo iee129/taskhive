@@ -1,6 +1,6 @@
 # 상태 관리
 
-## 전략 (Phase 8 기준)
+## 전략 (Phase 9 기준)
 
 서버 상태는 **TanStack Query**, UI 상태는 컴포넌트 로컬 `useState`로 분리.
 
@@ -10,6 +10,7 @@
 | 뮤테이션 (생성·수정·삭제) | TanStack Query (`useMutation`) | `useCreateTask`, `useDeleteTask` |
 | 낙관적 업데이트 | `onMutate` + rollback | `useOptimisticTaskStatus` |
 | 인증 토큰 | `localStorage` + Axios 인터셉터 | `client.ts` |
+| 테마 (다크/라이트) | React Context (`ThemeContext`) | `useThemeContext`, `ThemeToggle` |
 | UI 상태 (모달, 폼) | 컴포넌트 `useState` | `modalOpen`, `editingTask` |
 
 ---
@@ -118,3 +119,31 @@ KanbanPage
 - `30_000` (30초) — 태스크 목록: 자주 변경되지만 즉각성 불필요
 - `60_000` (60초) — 프로젝트 목록: 드물게 변경
 - `0` — 실시간 필요 데이터 (현재 미사용)
+
+---
+
+## 테마 상태 (Phase 9)
+
+```typescript
+// contexts/ThemeContext.tsx
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const [mode, setMode] = useState<'light' | 'dark'>(
+    () => (localStorage.getItem('theme') as 'light' | 'dark') ?? 'light'
+  );
+  const toggle = () => {
+    setMode((prev) => {
+      const next = prev === 'light' ? 'dark' : 'light';
+      localStorage.setItem('theme', next);
+      return next;
+    });
+  };
+  return (
+    <ThemeContext.Provider value={{ isDark: mode === 'dark', algorithm, toggle }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+}
+```
+
+`ThemeProvider`는 `main.tsx` 최상위에 위치해 모든 컴포넌트에서 `useThemeContext()`로 접근 가능.
+`App.tsx`의 `ConfigProvider`가 `algorithm`을 구독해 Ant Design 전체 테마를 동기화.
