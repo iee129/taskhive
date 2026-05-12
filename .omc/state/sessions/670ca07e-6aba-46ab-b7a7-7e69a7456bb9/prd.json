@@ -1,0 +1,65 @@
+{
+  "project": "TaskHive 프로젝트 멤버 초대 & 공유",
+  "stories": [
+    {
+      "id": "US-001",
+      "title": "ProjectMember 엔티티 & 리포지토리",
+      "passes": true,
+      "acceptanceCriteria": [
+        "ProjectMemberRole enum (OWNER, MEMBER)이 auth/src/main/java/com/taskhive/model/enums/ProjectMemberRole.java에 존재함 ✓",
+        "ProjectMember 엔티티가 auth/src/main/java/com/taskhive/model/ProjectMember.java에 존재하며 id, project(ManyToOne), user(ManyToOne), role(ProjectMemberRole), createdAt 필드를 포함함 ✓",
+        "ProjectMemberRepository가 auth/src/main/java/com/taskhive/repository/ProjectMemberRepository.java에 존재하며 findByProjectIdAndUserId, findByProjectId, existsByProjectIdAndUserId, countByProjectIdAndRole 쿼리 메서드를 포함함 ✓",
+        "ErrorCode에 MEMBER_ALREADY_EXISTS(409), LAST_OWNER(400), MEMBER_NOT_FOUND(404) 에러코드가 추가됨 ✓"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "멤버 관리 API",
+      "passes": true,
+      "acceptanceCriteria": [
+        "MemberResponse DTO가 존재하며 userId, name, email, role, createdAt 필드를 포함함 ✓",
+        "AddMemberRequest DTO가 존재하며 email 필드를 포함함 ✓",
+        "UserSearchResponse DTO가 존재하며 userId, name, email 필드를 포함함 ✓",
+        "GET /api/projects/{id}/members — 인증된 멤버만 조회 가능, 비멤버는 403 ✓",
+        "POST /api/projects/{id}/members — 이메일로 사용자 검색 후 즉시 추가, 이미 멤버면 409 반환 ✓",
+        "DELETE /api/projects/{id}/members/{userId} — Owner 또는 Member 가능, 유일한 Owner는 제거 불가(400) ✓",
+        "GET /api/users/search?email= — 등록된 사용자를 이메일로 검색 (본인 및 이미 해당 프로젝트 멤버 제외, projectId 파라미터 선택) ✓"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "권한 체크 업데이트",
+      "passes": true,
+      "acceptanceCriteria": [
+        "ProjectService.deleteProject()가 ProjectMember OWNER 역할을 체크하며, Member가 삭제 시도하면 FORBIDDEN(403) 반환 ✓",
+        "ProjectService.getMyProjects()가 소유 프로젝트와 멤버로 참여한 프로젝트를 모두 반환함 ✓",
+        "ProjectService.createProject()가 생성 시 ProjectMember OWNER 레코드를 자동으로 생성함 ✓",
+        "비멤버가 GET /api/projects/{id} 호출 시 403 반환 ✓",
+        "비멤버가 태스크 및 댓글 접근 시 403 반환 (TaskService, CommentService에 멤버십 확인 로직 추가) ✓"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "프론트엔드 프로젝트 카드 & 멤버 관리",
+      "passes": true,
+      "acceptanceCriteria": [
+        "frontend/src/api/projects.ts가 존재하며 getProjects, createProject, deleteProject API 함수를 포함함 ✓",
+        "frontend/src/api/members.ts가 존재하며 getMembers, addMember, removeMember, searchUsers API 함수를 포함함 ✓",
+        "frontend/src/pages/ProjectsPage.tsx가 존재하며 프로젝트 카드 목록을 표시함 ✓",
+        "각 프로젝트 카드에 멤버 아바타 슬롯이 표시됨 (최대 4개 + 초과 시 +n 표기) ✓",
+        "아바타 영역 클릭 → 멤버 관리 모달 (현재 멤버 목록 + 초대 + 제거 기능) ✓",
+        "/projects 라우트가 App.tsx에 추가되고 사이드바에 '프로젝트' 메뉴 항목이 추가됨 ✓"
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "ProjectResponse 멤버 정보 포함",
+      "passes": true,
+      "acceptanceCriteria": [
+        "ProjectResponse에 members 필드(List<MemberResponse>)가 추가됨 ✓",
+        "GET /api/projects 응답에 각 프로젝트의 멤버 목록이 포함됨 ✓",
+        "초대된 사용자의 프로젝트 목록에 공유된 프로젝트가 표시됨 (US-003 getMyProjects 연동) ✓"
+      ]
+    }
+  ]
+}
