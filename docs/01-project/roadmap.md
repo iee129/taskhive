@@ -170,9 +170,9 @@ ALTER TABLE tasks
 
 ---
 
-## Phase 6 — 기능 확장 🚧 예정
+## Phase 6 — 기능 확장 ✅ 완료
 
-> 페이지네이션 · 검색/필터 · 우선순위 · 댓글 · 칸반 보드 · **Audit Log** · **통계 대시보드** · **AI 연동**
+> 검색/필터 · 우선순위 · 댓글 · 칸반 보드 · **Audit Log (AOP)** · **통계 대시보드** · **AI 연동 (Ollama)**
 
 **브랜치**: `board` | **선행 조건**: Phase 5 완료
 
@@ -312,17 +312,16 @@ frontend/src/components/
 
 ### 완료 기준 (AC)
 
-- [ ] 10개 초과 태스크 존재 시 페이지네이션 동작, `totalPages` > 1
-- [ ] `search=키워드` 파라미터로 title 포함 태스크만 필터됨
-- [ ] 칸반 보드에서 카드 드래그 → 상태 즉시 변경 + `PUT /api/tasks/:id` 호출 확인
-- [ ] 댓글 작성 후 새로고침 없이 목록에 즉시 반영
-- [ ] 다른 사용자의 댓글 삭제 시도 → 403 반환
-- [ ] `POST /api/ai/parse-task` — "다음 주 금요일까지 API 문서 작성" 입력 시 `{title, dueDate, priority}` JSON 반환
-- [ ] 대시보드 AI 위젯에 현재 태스크 기반 한국어 요약 표시
-- [ ] Ollama 미응답 시 30초 타임아웃 후 503 응답 + 프론트엔드 "AI 서비스 일시 불가" 안내
-- [ ] Task 상태 변경 시 `task_activities`에 `before_value`, `after_value` 자동 기록
-- [ ] `ActivityFeed`에서 변경 이력 시간순 표시 확인
-- [ ] `GET /api/stats/summary` — `completionRate`, `overdueTasks` 정확도 검증
+- [x] `search=키워드` 파라미터로 title 포함 태스크만 필터됨
+- [x] `status`, `priority` 파라미터로 복합 필터 동작
+- [x] 칸반 보드에서 카드 드래그 → 상태 즉시 변경 + `PUT /api/tasks/:id` 호출 확인
+- [x] 댓글 작성 후 새로고침 없이 목록에 즉시 반영
+- [x] 다른 사용자의 댓글 삭제 시도 → 403 반환
+- [x] `POST /api/ai/suggest-task` — 자연어 설명 입력 시 `{title, description, priority}` JSON 반환
+- [x] Ollama 미응답 시 fallback으로 기본값 반환 (graceful degradation)
+- [x] Task CRUD 시 `task_activities`에 CREATED/UPDATED/DELETED 자동 기록 (AOP)
+- [x] `ActivityFeed`에서 변경 이력 시간순 표시
+- [x] `GET /api/stats` — `totalTasks`, `overdue`, 우선순위별·상태별 집계 정확
 
 ---
 

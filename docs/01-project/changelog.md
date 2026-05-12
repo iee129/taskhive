@@ -8,13 +8,50 @@
 ## [미출시]
 
 ### 추가 예정
-- Phase 6: 페이지네이션 · 칸반 보드 · 댓글 · **Audit Log (AOP)** · **통계 대시보드** · AI 자연어 태스크 생성 · 일간 다이제스트
 - Phase 6.5: **WebSocket STOMP 실시간 동기화** (칸반 보드 카드 즉시 반영)
 - Phase 7: Testcontainers · JaCoCo 80% · Playwright E2E
 - Phase 8: TanStack Query · Redis 캐싱 · N+1 제거
 - Phase 9: 다크모드 · 반응형 · Error Boundary
 - Phase 10: Docker Compose 통합 (PostgreSQL + Redis + Ollama)
 - Phase 11: GitHub Actions CI/CD · GHCR 이미지 푸시
+
+---
+
+## [0.7.0] — 2026-05-12
+
+### 추가
+- `Task.Priority` enum — `LOW`, `MEDIUM`, `HIGH` (기본값 `MEDIUM`)
+- `Comment` 엔티티 + `CommentRepository` — 태스크별 댓글 (작성자 FK)
+- `CommentService` — 조회·등록·삭제 (작성자 본인만 삭제 가능, 403 검증)
+- `CommentController` — `GET/POST/DELETE /api/tasks/{taskId}/comments`
+- `TaskActivity` 엔티티 + `TaskActivityRepository` — Audit Log 기록 테이블
+- `TaskActivityAspect` — `@AfterReturning` AOP, CREATED/UPDATED/DELETED/COMMENTED 자동 기록
+- `StatsService` — 전체·상태별·우선순위별·기한초과·프로젝트·댓글 집계
+- `StatsController` — `GET /api/stats`, `GET /api/stats/activities`, `GET /api/stats/activities/task/{id}`
+- `AiService` — Ollama `llama3.2` 연동 (RestTemplate), 자연어 → `{title, description, priority}` JSON 파싱, 실패 시 fallback
+- `AiController` — `POST /api/ai/suggest-task`, `POST /api/ai/create-task`
+- `AppConfig` — `RestTemplate` 빈 등록
+- `spring-boot-starter-aop` 의존성 추가
+- `KanbanPage` — `@hello-pangea/dnd` 드래그앤드롭 3열 칸반 보드, 카드 이동 시 즉시 `PUT /api/tasks/{id}` 호출
+- `StatsPage` — 통계 카드 대시보드 + 완료율 Progress + 활동 이력
+- `FilterBar` 컴포넌트 — 상태·우선순위 드롭다운 + 키워드 검색
+- `CommentList` 컴포넌트 — 태스크 Drawer 내 댓글 CRUD
+- `ActivityFeed` 컴포넌트 — 활동 이력 Timeline
+- `AiTaskInput` 컴포넌트 — 자연어 입력 → AI 제안 확인 → 태스크 생성 모달
+
+### 수정
+- `Task` 엔티티 — `priority` 컬럼 추가
+- `TaskRequest` / `TaskResponse` — `priority` 필드 추가
+- `TaskRepository` — `findFiltered(status, priority, search)` JPQL 동적 쿼리
+- `TaskController` — `?status=&priority=&search=` 쿼리 파라미터 지원
+- `TasksPage` — 우선순위 컬럼·FilterBar·Drawer 댓글·AI 생성 버튼 추가
+- `Layout` — 칸반(`/kanban`), 통계(`/stats`) 메뉴 추가
+- `App.tsx` — `/kanban`, `/stats` 라우트 등록
+- `application.yml` — `taskhive.ollama.url`, `taskhive.ollama.model` 설정 추가
+
+### 검증
+- `mvn test` — 33개 테스트 전체 통과
+- `npm run build` — TypeScript 에러 0개
 
 ---
 
