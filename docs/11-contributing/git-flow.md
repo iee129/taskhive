@@ -3,12 +3,18 @@
 ## 브랜치 전략
 
 ```
-master          ← 프로덕션 기준 브랜치
-├── auth        ← 인증 기능 (완료)
-├── docs        ← 문서화 (현재)
-├── taskapi     ← 태스크 API (예정)
-├── frontend    ← 프론트엔드 UI (예정)
-└── {feature}   ← 단일 소문자 단어
+master           ← 프로덕션 기준 브랜치
+├── auth         ← Phase 4: 인증 고도화 (완료)
+├── architecture ← Phase 5: 아키텍처 고도화 (완료)
+├── docs         ← 문서화 (상시)
+├── board        ← Phase 6: 칸반·댓글·Audit Log·통계·AI (예정)
+├── realtime     ← Phase 6.5: WebSocket 실시간 동기화 (예정)
+├── testing      ← Phase 7: 테스트 고도화 JaCoCo·Playwright (예정)
+├── performance  ← Phase 8: 성능 최적화 Redis·N+1·TanStack (예정)
+├── polish       ← Phase 9: UI/UX 완성도 다크모드·반응형 (예정)
+├── docker       ← Phase 10: PostgreSQL + Docker Compose (예정)
+├── cicd         ← Phase 11: GitHub Actions CI/CD (예정)
+└── kubernetes   ← Phase 12: K8s 배포 (선택)
 ```
 
 ## 브랜치 명명 규칙

@@ -174,7 +174,7 @@ ALTER TABLE tasks
 
 > 페이지네이션 · 검색/필터 · 우선순위 · 댓글 · 칸반 보드 · **Audit Log** · **통계 대시보드** · **AI 연동**
 
-**선행 조건**: Phase 5 완료
+**브랜치**: `board` | **선행 조건**: Phase 5 완료
 
 ### 작업 순서
 
@@ -330,7 +330,7 @@ frontend/src/components/
 
 > 칸반 보드 + WebSocket STOMP — 다른 사용자의 변경이 즉시 반영
 
-**선행 조건**: Phase 6 완료 (칸반 보드 구현 후 적용)
+**브랜치**: `realtime` | **선행 조건**: Phase 6 완료 (칸반 보드 구현 후 적용)
 
 ### 작업 순서
 
@@ -385,7 +385,7 @@ frontend/src/
 
 > Testcontainers · JaCoCo 80% · React Testing Library · MSW · Playwright E2E
 
-**선행 조건**: Phase 6 완료 (기능 확장 완료 후 커버리지 확보)
+**브랜치**: `testing` | **선행 조건**: Phase 6 완료 (기능 확장 완료 후 커버리지 확보)
 
 ### 작업 순서
 
@@ -459,7 +459,7 @@ frontend/
 
 > TanStack Query · Lazy Loading · N+1 제거 · Redis 캐싱 · Lighthouse CI
 
-**선행 조건**: Phase 7 완료
+**브랜치**: `performance` | **선행 조건**: Phase 7 완료
 
 ### 작업 순서
 
@@ -529,7 +529,7 @@ assert:
 
 > 반응형 · 다크모드 · 스켈레톤 · Error Boundary · 접근성
 
-**선행 조건**: Phase 8 완료
+**브랜치**: `polish` | **선행 조건**: Phase 8 완료
 
 ### 작업 순서
 
@@ -586,7 +586,7 @@ theme={{
 
 > H2 → 실제 RDB · Flyway 마이그레이션 · 4-컨테이너 스택
 
-**선행 조건**: Phase 9 완료
+**브랜치**: `docker` | **선행 조건**: Phase 9 완료
 
 ### 작업 순서
 
@@ -651,7 +651,7 @@ location / {
 
 > GitHub Actions · 커버리지 게이트 · Docker 이미지 GHCR 푸시
 
-**선행 조건**: Phase 10 완료
+**브랜치**: `cicd` | **선행 조건**: Phase 10 완료
 
 ### 작업 순서
 
@@ -704,7 +704,7 @@ ghcr.io/iee129/taskhive-frontend:latest
 
 > 컨테이너 오케스트레이션 이해도를 코드로 증명
 
-**선행 조건**: Phase 11 완료
+**브랜치**: `kubernetes` | **선행 조건**: Phase 11 완료
 
 매니페스트 목록, HPA, Ingress 설정, minikube 검증 — 취업 준비 상황에 따라 진행 여부 결정
 
