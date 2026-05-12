@@ -17,6 +17,11 @@ graph TB
 
     subgraph Database["데이터베이스"]
         DB["PostgreSQL 16\n:5432"]
+        RD["Redis 7\n:6379"]
+    end
+
+    subgraph AI["AI 서비스"]
+        OL["Ollama\n(Llama 3.2 3B)\n:11434"]
     end
 
     subgraph Infra["인프라"]
@@ -28,8 +33,11 @@ graph TB
     API --> SEC
     SEC -->|"검증 통과 시"| API
     API -->|"JPA/Hibernate"| DB
+    API -->|"@Cacheable"| RD
+    API -->|"RestClient HTTP"| OL
     DC -.->|"오케스트레이션"| API
     DC -.->|"오케스트레이션"| DB
+    DC -.->|"오케스트레이션"| OL
     K8S -.->|"배포 관리"| API
 ```
 

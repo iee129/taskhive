@@ -8,8 +8,38 @@
 ## [미출시]
 
 ### 추가 예정
-- Docker Compose 통합 검증
-- Kubernetes 배포 매니페스트 검증
+- Phase 5: ErrorCode enum · Soft Delete · Project 리소스 · OpenAPI · MDC
+- Phase 6: 페이지네이션 · 칸반 보드 · 댓글 · AI 자연어 태스크 생성 · 일간 다이제스트
+- Phase 7: Testcontainers · JaCoCo 80% · Playwright E2E
+- Phase 8: TanStack Query · Redis 캐싱 · N+1 제거
+- Phase 9: 다크모드 · 반응형 · Error Boundary
+- Phase 10: Docker Compose 통합 (PostgreSQL + Redis + Ollama)
+- Phase 11: GitHub Actions CI/CD · GHCR 이미지 푸시
+
+---
+
+## [0.5.0] — 2026-05-12
+
+### 추가
+- `RefreshToken` 엔티티 + `RefreshTokenRepository` (PESSIMISTIC_WRITE 비관적 락)
+- `RefreshTokenService` — 발급·검증·Rotation·무효화
+- `Role` enum (`USER`, `ADMIN`) + `User.role` 컬럼
+- `POST /api/auth/refresh` — HttpOnly Cookie Refresh Token → 새 Access Token
+- `POST /api/auth/logout` — Refresh Token 무효화 + Cookie 삭제
+- `PUT /api/auth/password` — 현재 비밀번호 검증 후 변경
+- `AdminController` — `GET /api/admin/health` (`@PreAuthorize("hasRole('ADMIN')")`)
+- `SecurityConfig` — `@EnableMethodSecurity`, `accessDeniedHandler` (JSON 403)
+- 프론트엔드 Axios 인터셉터 — 401 수신 시 `/refresh` 호출 + pending queue 패턴
+- `InvalidTokenException` → 401 매핑 (`GlobalExceptionHandler`)
+
+### 수정
+- `ResponseCookie` 빌더로 교체 — `SameSite=Lax`, `HttpOnly=true`, `Path=/api/auth`
+- Access Token 만료: 1h → 15분
+
+### 검증
+- `mvn test` — 33개 테스트 전체 통과
+- `RefreshTokenServiceTest` 커버리지 ≥ 90%
+- `AdminControllerTest` — 미인증 401, USER 역할 403 시나리오 통과
 
 ---
 

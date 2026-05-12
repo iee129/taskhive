@@ -1,7 +1,7 @@
 # 개발 로드맵
 
 > **포지션 목표**: 풀스택 (Java/Spring + React/TypeScript)  
-> **강조 역량**: 클린 아키텍처 · 보안/인증 · 테스트/TDD · 성능 최적화 · UI/UX
+> **강조 역량**: 클린 아키텍처 · 보안/인증 · AI·LLM 연동 · 테스트/TDD · 성능 최적화 · UI/UX
 
 ---
 
@@ -23,11 +23,9 @@ Vite + React 18 + TypeScript 5 + Ant Design 5 · PrivateRoute · 4개 페이지 
 
 ---
 
-## Phase 4 — 인증 고도화 🚧 예정
+## Phase 4 — 인증 고도화 ✅ 완료
 
 > Access/Refresh Token 이중 구조 + HttpOnly Cookie + Role 권한
-
-**선행 조건**: Phase 2, Phase 3 완료
 
 ### 작업 순서
 
@@ -81,11 +79,11 @@ CREATE INDEX idx_refresh_tokens_user ON refresh_tokens(user_id);
 
 ### 완료 기준 (AC)
 
-- [ ] Access Token 만료 후 프론트엔드가 자동으로 `/refresh` 호출하여 세션 유지
-- [ ] 응답 Set-Cookie 헤더에 `HttpOnly`, `SameSite=Lax` 확인
-- [ ] 로그아웃 후 동일 Refresh Token으로 재발급 시도 → 401 반환
-- [ ] `@PreAuthorize("hasRole('ADMIN')")` 엔드포인트에 USER 접근 → 403 반환
-- [ ] `RefreshTokenService` 단위 테스트 커버리지 ≥ 90%
+- [x] Access Token 만료 후 프론트엔드가 자동으로 `/refresh` 호출하여 세션 유지
+- [x] 응답 Set-Cookie 헤더에 `HttpOnly`, `SameSite=Lax` 확인
+- [x] 로그아웃 후 동일 Refresh Token으로 재발급 시도 → 401 반환
+- [x] `@PreAuthorize("hasRole('ADMIN')")` 엔드포인트에 USER 접근 → 403 반환
+- [x] `RefreshTokenService` 단위 테스트 커버리지 ≥ 90%
 
 ---
 
@@ -185,6 +183,10 @@ ALTER TABLE tasks
 5. 프론트엔드 — 검색창 + 상태/우선순위 필터 드롭다운
 6. 프론트엔드 — 칸반 보드 컴포넌트 (`@hello-pangea/dnd`)
 7. 프론트엔드 — 댓글 섹션 (태스크 상세 사이드 패널)
+8. Ollama 로컬 AI 서비스 연동 — `application.yml`에 `ollama.base-url` 설정
+9. `AiService` — Spring `RestClient`로 Ollama API 호출, JSON 구조화 응답 파싱
+10. `AiController` — `POST /api/ai/parse-task`, `GET /api/ai/digest` 엔드포인트
+11. 프론트엔드 — AI 입력 모달 (`AiTaskInput.tsx`) + 대시보드 AI 위젯 (`AiDigestWidget.tsx`)
 
 ### 구현 명세
 
@@ -226,7 +228,37 @@ frontend/src/
     TaskFilterBar.tsx          # 상태·우선순위·키워드 필터
     CommentSection.tsx         # 댓글 목록 + 입력 폼
     TaskDetailPanel.tsx        # 사이드 슬라이드 패널
+    AiTaskInput.tsx            # 자연어 입력 → 태스크 폼 자동 채움 모달
+    AiDigestWidget.tsx         # 대시보드 상단 AI 요약 카드
 ```
+
+**AI 연동 (Ollama)**
+```
+auth/src/main/java/com/taskhive/
+  ai/
+    AiService.java         # RestClient → Ollama, 프롬프트 구성 + JSON 파싱
+    AiController.java      # POST /api/ai/parse-task, GET /api/ai/digest
+  dto/
+    AiParseRequest.java    # { text: String }
+    AiParseResponse.java   # { title, description, dueDate, priority }
+    AiDigestResponse.java  # { summary: String }
+```
+
+**Ollama 설정**
+```yaml
+# application.yml
+ollama:
+  base-url: http://ollama:11434   # Docker Compose 서비스명
+  model: llama3.2:3b
+  timeout: 30s
+```
+
+**AI API**
+
+| Method | Path | 요청 | 응답 |
+|--------|------|------|------|
+| POST | `/api/ai/parse-task` | `{"text": "..."}` | `{title, description, dueDate, priority}` |
+| GET | `/api/ai/digest` | — (JWT 인증) | `{"summary": "..."}` |
 
 ### 완료 기준 (AC)
 
@@ -235,6 +267,9 @@ frontend/src/
 - [ ] 칸반 보드에서 카드 드래그 → 상태 즉시 변경 + `PUT /api/tasks/:id` 호출 확인
 - [ ] 댓글 작성 후 새로고침 없이 목록에 즉시 반영
 - [ ] 다른 사용자의 댓글 삭제 시도 → 403 반환
+- [ ] `POST /api/ai/parse-task` — "다음 주 금요일까지 API 문서 작성" 입력 시 `{title, dueDate, priority}` JSON 반환
+- [ ] 대시보드 AI 위젯에 현재 태스크 기반 한국어 요약 표시
+- [ ] Ollama 미응답 시 30초 타임아웃 후 503 응답 + 프론트엔드 "AI 서비스 일시 불가" 안내
 
 ---
 
@@ -475,8 +510,12 @@ db/migration/
 services:
   postgres:   image: postgres:16-alpine, port 5432
   redis:      image: redis:7-alpine, port 6379
-  backend:    build: ./auth, port 8080, depends_on: postgres, redis
+  ollama:     image: ollama/ollama, port 11434, volumes: ollama_data:/root/.ollama
+  backend:    build: ./auth, port 8080, depends_on: postgres, redis, ollama
   frontend:   build: ./frontend, port 80, depends_on: backend
+volumes:
+  postgres_data:
+  ollama_data:
 ```
 
 **Nginx 프록시 규칙**

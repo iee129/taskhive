@@ -16,24 +16,51 @@ services:
       POSTGRES_PASSWORD: taskhive
     ports:
       - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U taskhive"]
       interval: 10s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      retries: 5
+
+  ollama:
+    image: ollama/ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+    # 최초 실행 시 모델 풀: docker exec taskhive-ollama-1 ollama pull llama3.2:3b
+
   backend:
     build:
-      context: ../backend
+      context: ../auth
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
     environment:
       SPRING_PROFILES_ACTIVE: dev
       JWT_SECRET: local-dev-secret-key-32chars-minimum
-      CORS_ORIGINS: http://localhost:3000
+      CORS_ORIGINS: http://localhost:5173
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: llama3.2:3b
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_started
 
   frontend:
     build:
@@ -43,6 +70,10 @@ services:
       - "3000:80"
     depends_on:
       - backend
+
+volumes:
+  postgres_data:
+  ollama_data:
 ```
 
 ## Backend Dockerfile
