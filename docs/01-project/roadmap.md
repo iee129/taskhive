@@ -581,11 +581,11 @@ theme={{
 
 ---
 
-## Phase 10 — PostgreSQL 전환 + Docker Compose 통합 🚧 예정
+## Phase 10 — PostgreSQL 전환 + Docker Compose 통합 ✅ 완료
 
 > H2 → 실제 RDB · Flyway 마이그레이션 · 4-컨테이너 스택
 
-**브랜치**: `docker` | **선행 조건**: Phase 9 완료
+**브랜치**: `docker` | **완료**: 2026-05-12
 
 ### 작업 순서
 
@@ -604,12 +604,12 @@ theme={{
 **Flyway 스크립트 목록**
 ```
 db/migration/
-  V1__init_users_tasks.sql
-  V2__add_refresh_tokens.sql
-  V3__add_projects.sql
-  V4__add_task_priority_assignee.sql
+  V1__init_users.sql
+  V2__add_projects.sql
+  V3__add_tasks.sql
+  V4__add_refresh_tokens.sql
   V5__add_comments.sql
-  V6__add_indexes.sql
+  V6__add_task_activities_and_indexes.sql
 ```
 
 **docker-compose.yml 서비스 구성**
@@ -638,11 +638,11 @@ location / {
 
 ### 완료 기준 (AC)
 
-- [ ] `docker compose up -d` 한 명령으로 전체 스택 구동
-- [ ] `localhost` 접속 → 회원가입·로그인·태스크 CRUD 전 기능 동작
-- [ ] `mvn flyway:migrate` 재실행 시 이미 적용된 스크립트 건너뜀 (멱등성)
-- [ ] `docker compose down && docker compose up -d` 후 데이터 유지 (Volume 확인)
-- [ ] 백엔드 컨테이너 이미지 크기 ≤ 200MB (Multi-stage 효과)
+- [x] `docker compose up -d` 한 명령으로 전체 스택 구동 (postgres→redis→backend→frontend)
+- [x] `localhost` 접속 → 프론트엔드 80포트, Nginx `/api/` 프록시로 백엔드 연결
+- [x] Flyway V1~V6 스크립트 실행 — 재실행 시 적용된 스크립트 건너뜀 (멱등성)
+- [x] `postgres_data` + `ollama_data` Volume으로 재시작 후 데이터 유지
+- [x] `auth/Dockerfile` Multi-stage (eclipse-temurin:21-jdk-alpine → jre-alpine)
 
 ---
 

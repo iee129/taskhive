@@ -9,8 +9,24 @@
 
 ### 추가 예정
 - Phase 6.5: **WebSocket STOMP 실시간 동기화** (칸반 보드 카드 즉시 반영)
-- Phase 10: Docker Compose 통합 (PostgreSQL + Redis + Ollama)
 - Phase 11: GitHub Actions CI/CD · GHCR 이미지 푸시
+
+---
+
+## [0.11.0] — 2026-05-12
+
+### 추가
+- Flyway `flyway-core` + `flyway-database-postgresql` 의존성 추가
+- Flyway 마이그레이션 스크립트 V1~V6 (`users` → `projects` → `tasks` → `refresh_tokens` → `comments` → `task_activities` + 인덱스)
+- `application-prod.yml` — prod 프로파일 신규 생성 (`show-sql: false`)
+- Docker Compose: Redis 7-alpine + Ollama 서비스 추가, `postgres_data`/`ollama_data` 볼륨
+
+### 변경
+- `application.yml` — `ddl-auto: update` → `validate`, `flyway.enabled: true`
+- `application-dev.yml` — `flyway.baseline-on-migrate: true` 추가 (기존 dev DB 호환)
+- `application-test.yml` — `flyway.enabled: false` 추가 (H2 + create-drop 유지)
+- `docker-compose.yml` — 빌드 컨텍스트 `../backend` → `../auth`, 프론트 포트 `3000:80` → `80:80`, 백엔드 env `CACHE_TYPE=redis` / `REDIS_HOST` / `CORS_ORIGINS` / `OLLAMA_URL` 추가
+- `nginx.conf` — gzip 압축, `/assets/` 1년 캐시 (`immutable`), `proxy_read_timeout 60s`, `X-Forwarded-For` 헤더
 
 ---
 
