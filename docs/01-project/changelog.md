@@ -7,8 +7,24 @@
 
 ## [미출시]
 
-### 추가 예정
-- Phase 6.5: **WebSocket STOMP 실시간 동기화** (칸반 보드 카드 즉시 반영)
+_(모든 계획된 Phase 구현 완료)_
+
+---
+
+## [0.7.0] — 2026-05-12
+
+### 추가
+- `spring-boot-starter-websocket` 의존성 추가
+- `WebSocketConfig` — STOMP 엔드포인트 `/ws`, `/topic` 심플 브로커, ChannelInterceptor 등록
+- `WebSocketAuthInterceptor` — CONNECT 프레임 Bearer 토큰 추출 + JWT 검증 (`isValid` / `extractEmail`)
+- `TaskEventPublisher` — `/topic/tasks` 채널 이벤트 발행 래퍼
+- `TaskEvent` — `type / taskId / updatedBy / payload` DTO
+- `useBoardSync.ts` — `@stomp/stompjs` 기반 STOMP 구독 훅, `reconnectDelay: 5000ms`
+- `KanbanPage.tsx` — `useBoardSync` 연결: TASK_UPDATED 카드 즉시 이동, TASK_DELETED 즉시 제거, TASK_CREATED 목록 재조회
+
+### 변경
+- `TaskController` — create / update / delete 후 `TaskEventPublisher.publish()` 호출
+- `SecurityConfig` — `/ws/**` permitAll 추가
 
 ---
 

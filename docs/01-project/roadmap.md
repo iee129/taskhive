@@ -325,11 +325,11 @@ frontend/src/components/
 
 ---
 
-## Phase 6.5 — 실시간 동기화 (WebSocket) 🚧 예정
+## Phase 6.5 — 실시간 동기화 (WebSocket) ✅ 완료
 
 > 칸반 보드 + WebSocket STOMP — 다른 사용자의 변경이 즉시 반영
 
-**브랜치**: `realtime` | **선행 조건**: Phase 6 완료 (칸반 보드 구현 후 적용)
+**브랜치**: `realtime` | **완료**: 2026-05-12
 
 ### 작업 순서
 
@@ -373,10 +373,10 @@ frontend/src/
 
 ### 완료 기준 (AC)
 
-- [ ] 브라우저 탭 2개로 같은 프로젝트 접속 후 한쪽에서 카드 이동 → 다른 탭 자동 반영 (새로고침 없음)
-- [ ] WebSocket 연결 끊김 시 자동 재연결 (STOMP `reconnectDelay`)
-- [ ] JWT 인증 사용자만 `/ws` 핸드셰이크 가능 (`ChannelInterceptor` 토큰 검증)
-- [ ] 10개 동시 접속 시 메시지 유실 없음 (로컬 부하 테스트)
+- [x] 브라우저 탭 2개로 같은 프로젝트 접속 후 한쪽에서 카드 이동 → 다른 탭 자동 반영 (새로고침 없음)
+- [x] WebSocket 연결 끊김 시 자동 재연결 (STOMP `reconnectDelay`)
+- [x] JWT 인증 사용자만 `/ws` 핸드셰이크 가능 (`ChannelInterceptor` 토큰 검증)
+- [x] 10개 동시 접속 시 메시지 유실 없음 (로컬 부하 테스트)
 
 ---
 
