@@ -76,13 +76,13 @@ CREATE INDEX idx_refresh_tokens_user ON refresh_tokens(user_id);
 | PUT | `/api/auth/password` | `{currentPassword, newPassword}` | 200 OK |
 
 - Access Token 만료 시간: **15분**
-- Refresh Token 만료 시간: **7일**, `HttpOnly; Secure; SameSite=Strict`
+- Refresh Token 만료 시간: **7일**, `HttpOnly; Secure; SameSite=Lax`
 - Rotation: `/refresh` 호출 시 기존 토큰 삭제 + 신규 발급
 
 ### 완료 기준 (AC)
 
 - [ ] Access Token 만료 후 프론트엔드가 자동으로 `/refresh` 호출하여 세션 유지
-- [ ] 응답 Set-Cookie 헤더에 `HttpOnly`, `SameSite=Strict` 확인
+- [ ] 응답 Set-Cookie 헤더에 `HttpOnly`, `SameSite=Lax` 확인
 - [ ] 로그아웃 후 동일 Refresh Token으로 재발급 시도 → 401 반환
 - [ ] `@PreAuthorize("hasRole('ADMIN')")` 엔드포인트에 USER 접근 → 403 반환
 - [ ] `RefreshTokenService` 단위 테스트 커버리지 ≥ 90%
