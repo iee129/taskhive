@@ -1,76 +1,75 @@
 # 백엔드 프로젝트 구조
 
 ```
-backend/
+auth/
 ├── pom.xml
 └── src/
     ├── main/
     │   ├── java/com/taskhive/
-    │   │   ├── TaskHiveApplication.java          # @SpringBootApplication 진입점
+    │   │   ├── TaskHiveApplication.java
     │   │   ├── config/
     │   │   │   ├── JwtUtil.java                  # JWT 생성·검증
     │   │   │   ├── JwtFilter.java                # 토큰 추출 및 SecurityContext 주입
-    │   │   │   └── SecurityConfig.java           # 필터 체인, CORS, 권한 규칙
+    │   │   │   └── SecurityConfig.java           # 필터 체인, CORS, @EnableMethodSecurity
     │   │   ├── controller/
-    │   │   │   ├── AuthController.java           # POST /api/auth/register, /login
+    │   │   │   ├── AuthController.java           # /register, /login, /refresh, /logout, /me, /password
+    │   │   │   ├── AdminController.java          # /api/admin/health (@PreAuthorize ADMIN)
     │   │   │   └── TaskController.java           # GET/POST/PUT/DELETE /api/tasks/*
     │   │   ├── service/
-    │   │   │   ├── AuthService.java              # 회원가입·로그인 로직
-    │   │   │   └── TaskService.java              # 태스크 CRUD 로직
+    │   │   │   ├── AuthService.java              # 회원가입·로그인·비밀번호 변경
+    │   │   │   ├── RefreshTokenService.java      # 발급·Rotation·무효화
+    │   │   │   ├── TaskService.java              # 태스크 CRUD
+    │   │   │   └── UserDetailsServiceImpl.java   # Spring Security UserDetails
     │   │   ├── repository/
-    │   │   │   ├── UserRepository.java           # JpaRepository<User, Long>
-    │   │   │   └── TaskRepository.java           # JpaRepository<Task, Long>
+    │   │   │   ├── UserRepository.java
+    │   │   │   ├── RefreshTokenRepository.java   # findByTokenForUpdate (PESSIMISTIC_WRITE)
+    │   │   │   └── TaskRepository.java
     │   │   ├── model/
-    │   │   │   ├── User.java                     # users 테이블 Entity
+    │   │   │   ├── User.java                     # users 테이블 Entity (role 포함)
+    │   │   │   ├── RefreshToken.java             # refresh_tokens 테이블 Entity
     │   │   │   ├── Task.java                     # tasks 테이블 Entity
-    │   │   │   └── Task.Status.java              # TODO / IN_PROGRESS / DONE
-    │   │   └── dto/                              # (예정)
-    │   │       ├── LoginRequest.java
-    │   │       ├── RegisterRequest.java
-    │   │       └── AuthResponse.java
+    │   │   │   └── enums/Role.java               # USER, ADMIN
+    │   │   ├── dto/
+    │   │   │   ├── AuthRequest.java
+    │   │   │   ├── AuthResponse.java
+    │   │   │   ├── RegisterRequest.java
+    │   │   │   ├── RefreshResponse.java
+    │   │   │   ├── PasswordChangeRequest.java
+    │   │   │   ├── TaskRequest.java
+    │   │   │   └── TaskResponse.java
+    │   │   └── exception/
+    │   │       ├── GlobalExceptionHandler.java
+    │   │       └── InvalidTokenException.java    # 401 전용 예외
     │   └── resources/
-    │       ├── application.yml                   # 공통 설정 (JWT, CORS)
-    │       └── application-dev.yml              # 개발 전용 (PostgreSQL DSN, show-sql)
+    │       ├── application.yml                   # 공통 설정
+    │       └── application-test.yml             # H2 인메모리 (테스트)
     └── test/
         └── java/com/taskhive/
-            └── (테스트 클래스 — 예정)
+            ├── controller/
+            │   ├── AuthControllerTest.java       # 8개 통합 테스트
+            │   ├── AuthRefreshControllerTest.java # 9개 통합 테스트
+            │   └── AdminControllerTest.java      # 2개 통합 테스트
+            └── service/
+                ├── AuthServiceTest.java          # 6개 단위 테스트
+                └── RefreshTokenServiceTest.java  # 8개 단위 테스트
 ```
 
-## 주요 파일 설명
+## `application.yml` 핵심 설정
 
-### `TaskHiveApplication.java`
-```java
-@SpringBootApplication
-public class TaskHiveApplication {
-    public static void main(String[] args) {
-        SpringApplication.run(TaskHiveApplication.class, args);
-    }
-}
-```
-
-### `application.yml` 핵심 설정
 ```yaml
-jwt:
-  secret: ${JWT_SECRET}          # 환경 변수 주입 필수
-  expiration: 86400000           # 24시간
+taskhive:
+  jwt:
+    secret: ${JWT_SECRET:changeme-replace-in-production-with-256bit-key}
+    expiration-ms: 900000         # Access Token 15분
+    refresh-expiration-ms: 604800000  # Refresh Token 7일
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:5173}
 
 spring:
-  security:
-    cors:
-      origins: ${CORS_ORIGINS}   # 허용 Origin 목록
-```
-
-### `application-dev.yml`
-```yaml
-spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/taskhive
-    username: taskhive
-    password: taskhive
   jpa:
-    show-sql: true
     hibernate:
-      ddl-auto: update           # 개발 환경 자동 스키마 반영
+      ddl-auto: update
+    show-sql: false
 ```
 
 ## 네이밍 규칙
@@ -81,4 +80,5 @@ spring:
 | Service | `Service` | `AuthService` |
 | Repository | `Repository` | `UserRepository` |
 | Entity | 없음 | `User`, `Task` |
-| DTO | `Request` / `Response` | `LoginRequest`, `AuthResponse` |
+| DTO | `Request` / `Response` | `RegisterRequest`, `AuthResponse` |
+| 예외 | `Exception` | `InvalidTokenException` |

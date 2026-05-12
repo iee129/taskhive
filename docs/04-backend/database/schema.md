@@ -13,6 +13,7 @@ CREATE TABLE users (
     email       VARCHAR(255)    NOT NULL UNIQUE,
     name        VARCHAR(100)    NOT NULL,
     password    VARCHAR(255)    NOT NULL,   -- BCrypt 해시
+    role        VARCHAR(20)     NOT NULL DEFAULT 'USER',
     created_at  TIMESTAMP       NOT NULL DEFAULT NOW()
 );
 ```
@@ -23,7 +24,29 @@ CREATE TABLE users (
 | `email` | VARCHAR(255) | NOT NULL, UNIQUE | 로그인 ID, JWT subject |
 | `name` | VARCHAR(100) | NOT NULL | 표시 이름 |
 | `password` | VARCHAR(255) | NOT NULL | BCrypt 해시 (60자) |
+| `role` | VARCHAR(20) | NOT NULL | USER \| ADMIN (기본값 USER) |
 | `created_at` | TIMESTAMP | NOT NULL | 가입 시각 |
+
+### refresh_tokens
+
+```sql
+CREATE TABLE refresh_tokens (
+    id          BIGSERIAL       PRIMARY KEY,
+    token       VARCHAR(512)    NOT NULL UNIQUE,
+    user_id     BIGINT          NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expires_at  TIMESTAMP       NOT NULL,
+    created_at  TIMESTAMP       NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_refresh_tokens_user ON refresh_tokens(user_id);
+```
+
+| 컬럼 | 타입 | 제약 | 설명 |
+|------|------|------|------|
+| `id` | BIGSERIAL | PK | 자동 증가 식별자 |
+| `token` | VARCHAR(512) | NOT NULL, UNIQUE | UUID 토큰 값 |
+| `user_id` | BIGINT | FK → users | 토큰 소유자 |
+| `expires_at` | TIMESTAMP | NOT NULL | 만료 시각 (7일) |
+| `created_at` | TIMESTAMP | NOT NULL | 발급 시각 |
 
 ### projects
 
@@ -76,6 +99,7 @@ CREATE TABLE tasks (
 
 | 참조 | 정책 | 이유 |
 |------|------|------|
+| refresh_tokens.user_id → users | CASCADE | 회원 탈퇴 시 토큰 자동 삭제 |
 | tasks.project_id → projects | SET NULL | 프로젝트 삭제 시 태스크 보존 |
 | tasks.assignee_id → users | SET NULL | 회원 탈퇴 시 태스크 보존 |
 | projects.owner_id → users | CASCADE | 소유자 삭제 시 프로젝트도 삭제 |

@@ -13,11 +13,11 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route element={<PrivateRoute />}>
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/tasks/:id" element={<TaskDetailPage />} />
+          <Route path="/tasks" element={<TasksPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
         </Route>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/" element={<Navigate to="/tasks" replace />} />
+        <Route path="*" element={<Navigate to="/tasks" replace />} />
       </Routes>
     </BrowserRouter>
   );
@@ -28,12 +28,12 @@ function App() {
 
 | 경로 | 컴포넌트 | 인증 필요 | 설명 |
 |------|----------|----------|------|
-| `/` | — | — | `/dashboard`로 리다이렉트 |
+| `/` | — | — | `/tasks`로 리다이렉트 |
 | `/login` | LoginPage | 불필요 | 로그인 폼 |
 | `/register` | RegisterPage | 불필요 | 회원가입 폼 |
-| `/dashboard` | DashboardPage | 필요 | 태스크 목록 |
-| `/tasks/:id` | TaskDetailPage | 필요 | 태스크 상세·수정 |
-| `*` | — | — | `/dashboard`로 리다이렉트 |
+| `/tasks` | TasksPage | 필요 | 태스크 목록·생성·수정·삭제 |
+| `/profile` | ProfilePage | 필요 | 내 정보 |
+| `*` | — | — | `/tasks`로 리다이렉트 |
 
 ## PrivateRoute (인증 가드)
 
@@ -44,8 +44,8 @@ function PrivateRoute() {
 }
 ```
 
-토큰이 없거나 만료된 경우 `/login`으로 자동 리다이렉트.  
-401 응답 시 Axios 인터셉터가 토큰을 삭제하고 리다이렉트 처리.
+토큰이 없으면 `/login`으로 자동 리다이렉트.  
+401 응답 시 Axios 인터셉터가 `/api/auth/refresh`를 시도하고, 실패하면 `/login`으로 리다이렉트합니다.
 
 ## 네비게이션 예시
 
@@ -56,7 +56,7 @@ function LoginPage() {
   const navigate = useNavigate();
 
   const handleSuccess = () => {
-    navigate('/dashboard');
+    navigate('/tasks');
   };
 }
 ```

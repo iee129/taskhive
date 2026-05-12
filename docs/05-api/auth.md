@@ -35,6 +35,11 @@ Content-Type: application/json
 }
 ```
 
+응답 헤더에 Refresh Token 쿠키도 함께 설정됩니다:
+```
+Set-Cookie: refreshToken=<uuid>; Path=/api/auth; HttpOnly; SameSite=Lax; Max-Age=604800
+```
+
 ### 에러 응답
 
 | 상황 | 코드 | 응답 형식 |
@@ -62,11 +67,6 @@ Content-Type: application/json
 }
 ```
 
-| 필드 | 타입 | 필수 |
-|------|------|------|
-| `email` | string | 필수 |
-| `password` | string | 필수 |
-
 ### 응답 (200 OK)
 
 ```json
@@ -77,11 +77,61 @@ Content-Type: application/json
 }
 ```
 
+Refresh Token 쿠키도 함께 설정됩니다.
+
 ### 에러 응답
 
 | 상황 | 코드 | 응답 형식 |
 |------|------|----------|
 | 이메일 또는 비밀번호 불일치 | 401 | `{"error": "이메일 또는 비밀번호가 올바르지 않습니다"}` |
+
+---
+
+## POST /api/auth/refresh
+
+Refresh Token으로 새 Access Token을 발급합니다.
+
+### 요청
+
+```http
+POST /api/auth/refresh
+Cookie: refreshToken=<uuid>
+```
+
+### 응답 (200 OK)
+
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzM4NCJ9...",
+  "expiresIn": 900
+}
+```
+
+새 Refresh Token 쿠키도 함께 갱신됩니다 (Rotation).
+
+### 에러 응답
+
+| 상황 | 코드 | 응답 형식 |
+|------|------|----------|
+| 쿠키 없음 또는 유효하지 않은 토큰 | 401 | `{"error": "유효하지 않은 Refresh Token입니다"}` |
+| 만료된 토큰 | 401 | `{"error": "만료된 Refresh Token입니다"}` |
+
+---
+
+## POST /api/auth/logout
+
+Refresh Token을 무효화합니다.
+
+### 요청
+
+```http
+POST /api/auth/logout
+Cookie: refreshToken=<uuid>
+```
+
+### 응답 (204 No Content)
+
+Refresh Token 쿠키가 삭제됩니다.
 
 ---
 
@@ -105,8 +155,6 @@ Authorization: Bearer eyJhbGciOiJIUzM4NCJ9...
 }
 ```
 
-> `token` 필드는 포함되지 않습니다.
-
 ### 에러 응답
 
 | 상황 | 코드 | 응답 형식 |
@@ -115,12 +163,43 @@ Authorization: Bearer eyJhbGciOiJIUzM4NCJ9...
 
 ---
 
+## PUT /api/auth/password
+
+비밀번호를 변경합니다. JWT 필수.
+
+### 요청
+
+```http
+PUT /api/auth/password
+Authorization: Bearer eyJhbGciOiJIUzM4NCJ9...
+Content-Type: application/json
+```
+
+```json
+{
+  "currentPassword": "password123",
+  "newPassword": "newpassword456"
+}
+```
+
+### 응답 (200 OK)
+
+응답 본문 없음.
+
+### 에러 응답
+
+| 상황 | 코드 | 응답 형식 |
+|------|------|----------|
+| 현재 비밀번호 불일치 | 401 | `{"error": "이메일 또는 비밀번호가 올바르지 않습니다"}` |
+| 미인증 | 401 | `{"error": "인증이 필요합니다"}` |
+
+---
+
 ## 토큰 사용 방법
 
-발급된 `token`을 이후 모든 보호된 요청의 `Authorization` 헤더에 포함:
-
+Access Token (유효기간 **15분**):
 ```http
 Authorization: Bearer eyJhbGciOiJIUzM4NCJ9...
 ```
 
-토큰 유효기간: **1시간**. 만료 후 재로그인 필요.
+만료 시 프론트엔드 Axios 인터셉터가 자동으로 `/api/auth/refresh`를 호출하여 재발급합니다.

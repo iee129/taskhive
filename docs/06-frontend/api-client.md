@@ -8,9 +8,10 @@ import axios from 'axios';
 
 const client = axios.create({
   baseURL: 'http://localhost:8080',
+  withCredentials: true,  // HttpOnly 쿠키 전송 필수
 });
 
-// 요청 인터셉터 — JWT 자동 주입
+// 요청 인터셉터 — Access Token 자동 주입
 client.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
@@ -19,13 +20,45 @@ client.interceptors.request.use((config) => {
   return config;
 });
 
-// 응답 인터셉터 — 401 처리
+// 응답 인터셉터 — 401 수신 시 Refresh Token으로 재발급 후 원래 요청 재시도
+let isRefreshing = false;
+let pendingQueue: Array<{ resolve: (token: string) => void; reject: (err: unknown) => void }> = [];
+
 client.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+  async (error) => {
+    const originalRequest = error.config;
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          pendingQueue.push({ resolve, reject });
+        }).then((token) => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return client(originalRequest);
+        });
+      }
+      originalRequest._retry = true;
+      isRefreshing = true;
+      try {
+        const { data } = await axios.post(
+          'http://localhost:8080/api/auth/refresh',
+          {},
+          { withCredentials: true }
+        );
+        localStorage.setItem('token', data.accessToken);
+        pendingQueue.forEach(({ resolve }) => resolve(data.accessToken));
+        pendingQueue = [];
+        originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
+        return client(originalRequest);
+      } catch {
+        pendingQueue.forEach(({ reject }) => reject(error));
+        pendingQueue = [];
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+        return Promise.reject(error);
+      } finally {
+        isRefreshing = false;
+      }
     }
     return Promise.reject(error);
   }
@@ -49,6 +82,12 @@ export const login = (data: AuthRequest) =>
 
 export const me = () =>
   client.get<AuthResponse>('/api/auth/me').then((r) => r.data);
+
+export const logout = () =>
+  client.post('/api/auth/logout');
+
+export const changePassword = (data: { currentPassword: string; newPassword: string }) =>
+  client.put('/api/auth/password', data);
 ```
 
 ## Tasks API

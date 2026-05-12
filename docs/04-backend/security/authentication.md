@@ -4,12 +4,14 @@
 
 ```
 클라이언트
-  → Authorization: Bearer {token}
+  → Authorization: Bearer {accessToken}
     → JwtFilter.doFilterInternal()
       → JwtUtil.isValid(token)
         → SecurityContextHolder.setAuthentication(...)
           → Controller (인증된 요청)
 ```
+
+Refresh Token은 `HttpOnly; SameSite=Lax` 쿠키로 전달되며 Access Token 재발급에만 사용됩니다.
 
 ## 구현 파일
 
@@ -17,12 +19,12 @@
 |------|------|
 | `config/JwtUtil.java` | JWT 생성·파싱·검증 |
 | `config/JwtFilter.java` | 요청마다 토큰 추출 및 검증 |
-| `config/SecurityConfig.java` | 필터 등록, 공개 경로 설정 |
+| `config/SecurityConfig.java` | 필터 등록, 공개 경로 설정, @EnableMethodSecurity |
+| `service/RefreshTokenService.java` | Refresh Token 발급·Rotation·무효화 |
 
 ## JwtUtil 핵심 메서드
 
 ```java
-// JWT 생성 (로그인·회원가입 성공 시)
 public String generateToken(String email) {
     return Jwts.builder()
         .subject(email)
@@ -32,12 +34,10 @@ public String generateToken(String email) {
         .compact();
 }
 
-// 토큰에서 이메일 추출
 public String extractEmail(String token) {
     return getClaims(token).getSubject();
 }
 
-// 토큰 유효성 검사 (서명 + 만료 여부)
 public boolean isValid(String token) {
     try {
         getClaims(token);
@@ -48,39 +48,30 @@ public boolean isValid(String token) {
 }
 ```
 
-## JwtFilter 처리 순서
-
-```java
-@Override
-protected void doFilterInternal(HttpServletRequest request,
-                                HttpServletResponse response,
-                                FilterChain chain) {
-    String header = request.getHeader("Authorization");
-    if (header != null && header.startsWith("Bearer ")) {
-        String token = header.substring(7);
-        if (jwtUtil.isValid(token)) {
-            String email = jwtUtil.extractEmail(token);
-            UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(email, null, List.of());
-            SecurityContextHolder.getContext().setAuthentication(auth);
-        }
-    }
-    chain.doFilter(request, response);
-}
-```
-
 ## 토큰 설정
 
 | 항목 | 값 |
 |------|-----|
 | 알고리즘 | HMAC-SHA256 (HS256) |
-| 유효기간 | 24시간 (86,400,000ms) |
+| Access Token 유효기간 | **15분 (900,000ms)** |
+| Refresh Token 유효기간 | **7일 (604,800,000ms)** |
 | Subject | 사용자 이메일 |
 | Secret 출처 | `${JWT_SECRET}` 환경 변수 |
-| 저장 위치 (클라이언트) | `localStorage` |
+| Access Token 전달 | 응답 JSON (`token` 필드) |
+| Refresh Token 전달 | `HttpOnly; SameSite=Lax` 쿠키 |
+
+## Refresh Token Rotation
+
+`POST /api/auth/refresh` 호출 시:
+1. 쿠키에서 Refresh Token 추출
+2. DB 조회 + `PESSIMISTIC_WRITE` 잠금으로 중복 회전 방지
+3. 기존 토큰 삭제 + 새 토큰 발급 (Rotation)
+4. 새 Access Token + 새 Refresh Token 쿠키 응답
 
 ## 공개 엔드포인트 (인증 불필요)
 
 - `POST /api/auth/register`
 - `POST /api/auth/login`
+- `POST /api/auth/refresh`
+- `POST /api/auth/logout`
 - `GET /actuator/health`

@@ -30,19 +30,19 @@
 ### 에러 응답
 
 ```json
-{
-  "status": 400,
-  "error": "Bad Request",
-  "message": "제목은 필수입니다",
-  "timestamp": "2026-05-12T10:00:00Z"
-}
+{ "error": "메시지" }
+```
+
+검증 오류:
+```json
+{ "errors": ["field: 메시지"] }
 ```
 
 ## HTTP 상태 코드
 
 | 상황 | 코드 |
 |------|------|
-| 조회 성공 | 200 OK |
+| 조회·수정 성공 | 200 OK |
 | 생성 성공 | 201 Created |
 | 삭제 성공 (응답 없음) | 204 No Content |
 | 입력 검증 실패 | 400 Bad Request |
@@ -56,6 +56,12 @@
 ```
 POST   /api/auth/register     회원가입
 POST   /api/auth/login        로그인
+POST   /api/auth/refresh      Access Token 재발급 (Refresh Token 쿠키)
+POST   /api/auth/logout       로그아웃 (Refresh Token 무효화)
+GET    /api/auth/me           내 정보 조회
+PUT    /api/auth/password     비밀번호 변경
+
+GET    /api/admin/health      관리자 헬스체크 (ADMIN 전용)
 
 GET    /api/tasks             내 태스크 목록
 POST   /api/tasks             태스크 생성
