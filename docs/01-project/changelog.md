@@ -9,11 +9,29 @@
 
 ### 추가 예정
 - Phase 6.5: **WebSocket STOMP 실시간 동기화** (칸반 보드 카드 즉시 반영)
-- Phase 7: Testcontainers · JaCoCo 80% · Playwright E2E
 - Phase 8: TanStack Query · Redis 캐싱 · N+1 제거
 - Phase 9: 다크모드 · 반응형 · Error Boundary
 - Phase 10: Docker Compose 통합 (PostgreSQL + Redis + Ollama)
 - Phase 11: GitHub Actions CI/CD · GHCR 이미지 푸시
+
+---
+
+## [0.8.0] — 2026-05-12
+
+### 추가
+- Testcontainers BOM + `postgresql` + `spring-boot-testcontainers` 의존성
+- `TestcontainersConfig` — `@Testcontainers(disabledWithoutDocker=true)` 기반 통합 테스트 베이스 클래스
+- `TaskRepositoryTest` (12) — `@DataJpaTest` + H2, findFiltered/count 메서드 전수 검증
+- `AuthIntegrationTest` (6) + `TaskIntegrationTest` (7) — Testcontainers PostgreSQL 전체 Spring Context 테스트
+- 단위 테스트 신규: `TaskServiceTest`(17) · `CommentServiceTest`(9) · `StatsServiceTest`(5) · `ProjectServiceTest`(13) · `AiServiceTest`(5) · `UserDetailsServiceImplTest`(3) · `JwtUtilTest`(8)
+- JaCoCo Maven 플러그인 — 라인 80% / 브랜치 70% 임계값, `mvn verify` 빌드 게이트
+- `vitest` + `@testing-library/react` + `msw` + `@playwright/test` 설치
+- MSW `handlers.ts` / `server.ts` — API 목업 (auth, tasks, stats)
+- `FilterBar.test.tsx` (6) + `LoginPage.test.tsx` (5) — Vitest + RTL 컴포넌트 테스트
+- `playwright.config.ts` + `e2e/auth.spec.ts` + `e2e/task-crud.spec.ts` — Playwright E2E 설정
+
+### 변경
+- `application-tc.yml` — Testcontainers 전용 Spring 프로파일 (`tc`) 추가
 
 ---
 
