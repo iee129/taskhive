@@ -57,31 +57,26 @@ class AuthRefreshControllerTest {
         });
     }
 
-    private String registerAndGetToken(String email) throws Exception {
-        registerAndVerify(email);
+    private MvcResult login(String email) throws Exception {
         AuthRequest loginReq = new AuthRequest();
         loginReq.setEmail(email);
         loginReq.setPassword("password123");
-        MvcResult result = mockMvc.perform(post(LOGIN_URL)
+        return mockMvc.perform(post(LOGIN_URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(loginReq)))
                 .andExpect(status().isOk())
                 .andReturn();
-        return objectMapper.readTree(result.getResponse().getContentAsString())
+    }
+
+    private String registerAndGetToken(String email) throws Exception {
+        registerAndVerify(email);
+        return objectMapper.readTree(login(email).getResponse().getContentAsString())
                 .get("token").asText();
     }
 
     private Cookie registerAndGetRefreshCookie(String email) throws Exception {
         registerAndVerify(email);
-        AuthRequest loginReq = new AuthRequest();
-        loginReq.setEmail(email);
-        loginReq.setPassword("password123");
-        MvcResult result = mockMvc.perform(post(LOGIN_URL)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(loginReq)))
-                .andExpect(status().isOk())
-                .andReturn();
-        return result.getResponse().getCookie("refreshToken");
+        return login(email).getResponse().getCookie("refreshToken");
     }
 
     @Test

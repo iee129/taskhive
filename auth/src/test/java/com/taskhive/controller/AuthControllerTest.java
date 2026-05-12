@@ -14,7 +14,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -66,15 +65,12 @@ class AuthControllerTest {
 
     @Test
     void register_정상_이메일인증안내반환() throws Exception {
-        MvcResult result = mockMvc.perform(post(REGISTER_URL)
+        mockMvc.perform(post(REGISTER_URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(registerReq("reg1@example.com"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value("reg1@example.com"))
-                .andReturn();
-
-        var tokenNode = objectMapper.readTree(result.getResponse().getContentAsString()).get("token");
-        assertThat(tokenNode == null || tokenNode.isNull()).isTrue();
+                .andExpect(jsonPath("$.token").doesNotExist());
     }
 
     @Test
