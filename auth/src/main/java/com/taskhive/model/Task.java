@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "tasks")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class Task {
+public class Task extends BaseEntity {
 
     public enum Status { TODO, IN_PROGRESS, DONE }
 
@@ -37,11 +37,6 @@ public class Task {
     @Column(name = "due_date")
     private LocalDate dueDate;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-    }
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 }

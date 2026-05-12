@@ -1,12 +1,15 @@
 package com.taskhive.service;
 
 import com.taskhive.dto.*;
+import com.taskhive.exception.BusinessException;
+import com.taskhive.exception.ErrorCode;
 import com.taskhive.model.*;
 import com.taskhive.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -18,15 +21,15 @@ public class TaskService {
     private final UserRepository userRepository;
 
     public List<TaskResponse> getAllTasks() {
-        return taskRepository.findAll().stream()
+        return taskRepository.findAllByDeletedAtIsNull().stream()
                 .map(TaskResponse::from)
                 .toList();
     }
 
     public TaskResponse getTask(Long id) {
-        return taskRepository.findById(id)
+        return taskRepository.findByIdAndDeletedAtIsNull(id)
                 .map(TaskResponse::from)
-                .orElseThrow(() -> new IllegalArgumentException("Task not found: " + id));
+                .orElseThrow(() -> new BusinessException(ErrorCode.TASK_NOT_FOUND));
     }
 
     @Transactional
@@ -39,13 +42,13 @@ public class TaskService {
                 .build();
 
         if (request.getProjectId() != null) {
-            Project project = projectRepository.findById(request.getProjectId())
-                    .orElseThrow(() -> new IllegalArgumentException("Project not found"));
+            Project project = projectRepository.findByIdAndDeletedAtIsNull(request.getProjectId())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
             task.setProject(project);
         }
         if (request.getAssigneeId() != null) {
             User assignee = userRepository.findById(request.getAssigneeId())
-                    .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                    .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
             task.setAssignee(assignee);
         }
         return TaskResponse.from(taskRepository.save(task));
@@ -53,8 +56,8 @@ public class TaskService {
 
     @Transactional
     public TaskResponse updateTask(Long id, TaskRequest request) {
-        Task task = taskRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Task not found: " + id));
+        Task task = taskRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.TASK_NOT_FOUND));
         task.setTitle(request.getTitle());
         task.setDescription(request.getDescription());
         if (request.getStatus() != null) task.setStatus(request.getStatus());
@@ -64,9 +67,8 @@ public class TaskService {
 
     @Transactional
     public void deleteTask(Long id) {
-        if (!taskRepository.existsById(id)) {
-            throw new IllegalArgumentException("Task not found: " + id);
-        }
-        taskRepository.deleteById(id);
+        Task task = taskRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.TASK_NOT_FOUND));
+        task.setDeletedAt(LocalDateTime.now());
     }
 }

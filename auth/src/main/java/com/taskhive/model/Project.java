@@ -8,7 +8,7 @@ import java.util.List;
 @Entity
 @Table(name = "projects")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class Project {
+public class Project extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -26,11 +26,6 @@ public class Project {
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL)
     private List<Task> tasks;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-    }
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 }
