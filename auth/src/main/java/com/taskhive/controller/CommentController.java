@@ -19,8 +19,9 @@ public class CommentController {
     private final CommentService commentService;
 
     @GetMapping
-    public ResponseEntity<List<CommentResponse>> getComments(@PathVariable Long taskId) {
-        return ResponseEntity.ok(commentService.getComments(taskId));
+    public ResponseEntity<List<CommentResponse>> getComments(@PathVariable Long taskId,
+                                                              Authentication auth) {
+        return ResponseEntity.ok(commentService.getComments(taskId, auth.getName()));
     }
 
     @PostMapping

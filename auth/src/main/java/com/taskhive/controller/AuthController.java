@@ -4,6 +4,7 @@ import com.taskhive.config.JwtUtil;
 import com.taskhive.dto.*;
 import com.taskhive.model.RefreshToken;
 import com.taskhive.service.AuthService;
+import com.taskhive.service.PasswordResetService;
 import com.taskhive.service.RefreshTokenService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,6 +19,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -27,12 +29,11 @@ public class AuthController {
     private final AuthService authService;
     private final RefreshTokenService refreshTokenService;
     private final JwtUtil jwtUtil;
+    private final PasswordResetService passwordResetService;
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request,
-                                                  HttpServletResponse response) {
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         AuthResponse authResponse = authService.register(request);
-        setRefreshTokenCookie(response, authService.issueRefreshToken(authResponse.getEmail()));
         return ResponseEntity.ok(authResponse);
     }
 
@@ -42,6 +43,24 @@ public class AuthController {
         AuthResponse authResponse = authService.login(request);
         setRefreshTokenCookie(response, authService.issueRefreshToken(authResponse.getEmail()));
         return ResponseEntity.ok(authResponse);
+    }
+
+    @GetMapping("/verify-email")
+    public ResponseEntity<Map<String, String>> verifyEmail(@RequestParam String token) {
+        authService.verifyEmail(token);
+        return ResponseEntity.ok(Map.of("message", "이메일 인증이 완료되었습니다. 로그인해주세요."));
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Map<String, String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        passwordResetService.sendResetEmail(request.getEmail());
+        return ResponseEntity.ok(Map.of("message", "비밀번호 재설정 이메일을 발송했습니다."));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<Map<String, String>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
+        return ResponseEntity.ok(Map.of("message", "비밀번호가 변경되었습니다. 로그인해주세요."));
     }
 
     @GetMapping("/me")
@@ -74,6 +93,12 @@ public class AuthController {
     public ResponseEntity<Void> changePassword(@AuthenticationPrincipal UserDetails userDetails,
                                                 @Valid @RequestBody PasswordChangeRequest request) {
         authService.changePassword(userDetails.getUsername(), request);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/users/me")
+    public ResponseEntity<Void> withdrawAccount(@AuthenticationPrincipal UserDetails userDetails) {
+        authService.withdrawAccount(userDetails.getUsername());
         return ResponseEntity.ok().build();
     }
 

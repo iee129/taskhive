@@ -8,6 +8,7 @@ import com.taskhive.model.Comment;
 import com.taskhive.model.Task;
 import com.taskhive.model.User;
 import com.taskhive.repository.CommentRepository;
+import com.taskhive.repository.ProjectMemberRepository;
 import com.taskhive.repository.TaskRepository;
 import com.taskhive.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,10 +24,12 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
+    private final ProjectMemberRepository memberRepository;
 
-    public List<CommentResponse> getComments(Long taskId) {
-        taskRepository.findByIdAndDeletedAtIsNull(taskId)
+    public List<CommentResponse> getComments(Long taskId, String requesterEmail) {
+        Task task = taskRepository.findByIdAndDeletedAtIsNull(taskId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.TASK_NOT_FOUND));
+        checkProjectMembership(task, requesterEmail);
         return commentRepository.findByTaskIdOrderByCreatedAtAsc(taskId).stream()
                 .map(CommentResponse::from)
                 .toList();
@@ -38,6 +41,7 @@ public class CommentService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.TASK_NOT_FOUND));
         User author = userRepository.findByEmail(authorEmail)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        checkProjectMembership(task, authorEmail);
         Comment comment = Comment.builder()
                 .content(request.getContent())
                 .task(task)
@@ -54,5 +58,14 @@ public class CommentService {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
         commentRepository.deleteById(commentId);
+    }
+
+    private void checkProjectMembership(Task task, String requesterEmail) {
+        if (task.getProject() == null) return;
+        User requester = userRepository.findByEmail(requesterEmail)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        if (!memberRepository.existsByProjectIdAndUserId(task.getProject().getId(), requester.getId())) {
+            throw new BusinessException(ErrorCode.NOT_PROJECT_MEMBER);
+        }
     }
 }

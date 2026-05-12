@@ -12,8 +12,13 @@ export default function LoginPage() {
       const res = await login(values);
       localStorage.setItem('token', res.token!);
       navigate('/tasks');
-    } catch {
-      messageApi.error('이메일 또는 비밀번호가 올바르지 않습니다');
+    } catch (err: any) {
+      const code = err.response?.data?.code;
+      if (code === 'EMAIL_NOT_VERIFIED') {
+        messageApi.warning('이메일 인증이 필요합니다. 이메일함을 확인해주세요.');
+      } else {
+        messageApi.error('이메일 또는 비밀번호가 올바르지 않습니다');
+      }
     }
   };
 
@@ -33,6 +38,9 @@ export default function LoginPage() {
             <Button type="primary" htmlType="submit" block>로그인</Button>
           </Form.Item>
         </Form>
+        <div style={{ textAlign: 'center', marginBottom: 8 }}>
+          <Link to="/forgot-password">비밀번호를 잊으셨나요?</Link>
+        </div>
         <div style={{ textAlign: 'center' }}>
           계정이 없으신가요? <Link to="/register">회원가입</Link>
         </div>

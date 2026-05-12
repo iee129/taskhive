@@ -9,11 +9,11 @@ export default function RegisterPage() {
 
   const onFinish = async (values: RegisterRequest) => {
     try {
-      const res = await register(values);
-      localStorage.setItem('token', res.token!);
-      navigate('/tasks');
+      await register(values);
+      messageApi.success('인증 이메일을 발송했습니다. 이메일을 확인한 후 로그인해주세요.');
+      setTimeout(() => navigate('/login'), 2000);
     } catch (err: any) {
-      const msg = err.response?.data?.error ?? '회원가입에 실패했습니다';
+      const msg = err.response?.data?.message ?? '회원가입에 실패했습니다';
       messageApi.error(msg);
     }
   };

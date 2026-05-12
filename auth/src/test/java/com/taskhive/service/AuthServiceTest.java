@@ -2,6 +2,7 @@ package com.taskhive.service;
 
 import com.taskhive.config.JwtUtil;
 import com.taskhive.dto.*;
+import com.taskhive.exception.BusinessException;
 import com.taskhive.model.User;
 import com.taskhive.repository.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -16,6 +17,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -25,11 +27,14 @@ class AuthServiceTest {
     @Mock PasswordEncoder passwordEncoder;
     @Mock JwtUtil jwtUtil;
     @Mock AuthenticationManager authenticationManager;
+    @Mock EmailService emailService;
+    @Mock RefreshTokenService refreshTokenService;
+    @Mock com.taskhive.repository.RefreshTokenRepository refreshTokenRepository;
 
     @InjectMocks AuthService authService;
 
     @Test
-    void register_정상_저장후JWT반환() {
+    void register_정상_이메일인증안내반환() {
         RegisterRequest req = new RegisterRequest();
         req.setName("홍길동");
         req.setEmail("test@example.com");
@@ -39,18 +44,19 @@ class AuthServiceTest {
                 .email("test@example.com")
                 .name("홍길동")
                 .password("encoded")
+                .emailVerified(false)
                 .build();
 
         when(userRepository.existsByEmail("test@example.com")).thenReturn(false);
         when(passwordEncoder.encode("password123")).thenReturn("encoded");
         when(userRepository.save(any())).thenReturn(saved);
-        when(jwtUtil.generateToken("test@example.com")).thenReturn("jwt-token");
 
         AuthResponse response = authService.register(req);
 
-        assertThat(response.getToken()).isNotNull();
+        assertThat(response.getToken()).isNull();
         assertThat(response.getEmail()).isEqualTo("test@example.com");
         verify(userRepository).save(any());
+        verify(emailService).sendVerificationEmail(eq("test@example.com"), any(), any());
     }
 
     @Test
@@ -63,8 +69,7 @@ class AuthServiceTest {
         when(userRepository.existsByEmail("dup@example.com")).thenReturn(true);
 
         assertThatThrownBy(() -> authService.register(req))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Email already in use");
+                .isInstanceOf(BusinessException.class);
     }
 
     @Test
@@ -77,6 +82,7 @@ class AuthServiceTest {
                 .email("test@example.com")
                 .name("홍길동")
                 .password("encoded")
+                .emailVerified(true)
                 .build();
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));

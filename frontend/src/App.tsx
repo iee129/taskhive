@@ -7,6 +7,10 @@ import TasksPage from './pages/TasksPage';
 import KanbanPage from './pages/KanbanPage';
 import StatsPage from './pages/StatsPage';
 import ProfilePage from './pages/ProfilePage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
+import ProjectsPage from './pages/ProjectsPage';
 
 export default function App() {
   return (
@@ -14,8 +18,12 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route element={<PrivateRoute />}>
           <Route element={<Layout />}>
+            <Route path="/projects" element={<ProjectsPage />} />
             <Route path="/tasks" element={<TasksPage />} />
             <Route path="/kanban" element={<KanbanPage />} />
             <Route path="/stats" element={<StatsPage />} />

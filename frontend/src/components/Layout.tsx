@@ -2,7 +2,7 @@ import { Layout as AntLayout, Menu } from 'antd';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import {
   CheckSquareOutlined, UserOutlined, LogoutOutlined,
-  AppstoreOutlined, BarChartOutlined,
+  AppstoreOutlined, BarChartOutlined, ProjectOutlined,
 } from '@ant-design/icons';
 
 const { Sider, Content } = AntLayout;
@@ -17,6 +17,7 @@ export default function Layout() {
   };
 
   const menuItems = [
+    { key: '/projects', icon: <ProjectOutlined />, label: '프로젝트' },
     { key: '/tasks', icon: <CheckSquareOutlined />, label: '태스크' },
     { key: '/kanban', icon: <AppstoreOutlined />, label: '칸반 보드' },
     { key: '/stats', icon: <BarChartOutlined />, label: '통계' },

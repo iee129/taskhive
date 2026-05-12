@@ -24,8 +24,8 @@ public class ProjectController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ProjectResponse> getOne(@PathVariable Long id) {
-        return ResponseEntity.ok(projectService.getProject(id));
+    public ResponseEntity<ProjectResponse> getOne(@PathVariable Long id, Authentication authentication) {
+        return ResponseEntity.ok(projectService.getProject(id, authentication.getName()));
     }
 
     @PostMapping

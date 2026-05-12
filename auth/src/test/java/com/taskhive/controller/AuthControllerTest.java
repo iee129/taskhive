@@ -2,23 +2,31 @@ package com.taskhive.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.taskhive.dto.*;
+import com.taskhive.repository.UserRepository;
+import com.taskhive.service.EmailService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.transaction.annotation.Transactional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest(properties = {"spring.profiles.active=test"})
 @AutoConfigureMockMvc
+@Transactional
 class AuthControllerTest {
 
     @Autowired MockMvc mockMvc;
     @Autowired ObjectMapper objectMapper;
+    @Autowired UserRepository userRepository;
+    @MockBean EmailService emailService;
 
     private static final String REGISTER_URL = "/api/auth/register";
     private static final String LOGIN_URL = "/api/auth/login";
@@ -32,14 +40,41 @@ class AuthControllerTest {
         return req;
     }
 
-    @Test
-    void register_정상_200_token반환() throws Exception {
+    private void registerAndVerify(String email) throws Exception {
         mockMvc.perform(post(REGISTER_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(registerReq(email))))
+                .andExpect(status().isOk());
+        userRepository.findByEmail(email).ifPresent(u -> {
+            u.setEmailVerified(true);
+            userRepository.save(u);
+        });
+    }
+
+    private String getToken(String email) throws Exception {
+        AuthRequest req = new AuthRequest();
+        req.setEmail(email);
+        req.setPassword("password123");
+        MvcResult result = mockMvc.perform(post(LOGIN_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isOk())
+                .andReturn();
+        return objectMapper.readTree(result.getResponse().getContentAsString())
+                .get("token").asText();
+    }
+
+    @Test
+    void register_정상_이메일인증안내반환() throws Exception {
+        MvcResult result = mockMvc.perform(post(REGISTER_URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(registerReq("reg1@example.com"))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").isNotEmpty())
-                .andExpect(jsonPath("$.email").value("reg1@example.com"));
+                .andExpect(jsonPath("$.email").value("reg1@example.com"))
+                .andReturn();
+
+        var tokenNode = objectMapper.readTree(result.getResponse().getContentAsString()).get("token");
+        assertThat(tokenNode == null || tokenNode.isNull()).isTrue();
     }
 
     @Test
@@ -74,10 +109,7 @@ class AuthControllerTest {
     @Test
     void login_정상_200_token반환() throws Exception {
         String email = "login1@example.com";
-        mockMvc.perform(post(REGISTER_URL)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(registerReq(email))))
-                .andExpect(status().isOk());
+        registerAndVerify(email);
 
         AuthRequest req = new AuthRequest();
         req.setEmail(email);
@@ -93,10 +125,7 @@ class AuthControllerTest {
     @Test
     void login_잘못된비밀번호_401() throws Exception {
         String email = "login2@example.com";
-        mockMvc.perform(post(REGISTER_URL)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(registerReq(email))))
-                .andExpect(status().isOk());
+        registerAndVerify(email);
 
         AuthRequest req = new AuthRequest();
         req.setEmail(email);
@@ -124,14 +153,8 @@ class AuthControllerTest {
     @Test
     void me_유효한JWT_200_사용자정보반환() throws Exception {
         String email = "me@example.com";
-        MvcResult result = mockMvc.perform(post(REGISTER_URL)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(registerReq(email))))
-                .andExpect(status().isOk())
-                .andReturn();
-
-        String token = objectMapper.readTree(result.getResponse().getContentAsString())
-                .get("token").asText();
+        registerAndVerify(email);
+        String token = getToken(email);
 
         mockMvc.perform(get(ME_URL)
                         .header("Authorization", "Bearer " + token))

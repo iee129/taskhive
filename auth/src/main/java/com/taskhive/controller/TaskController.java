@@ -8,6 +8,7 @@ import com.taskhive.websocket.TaskEventPublisher;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,34 +35,32 @@ public class TaskController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<TaskResponse> getOne(@PathVariable Long id) {
-        return ResponseEntity.ok(taskService.getTask(id));
+    public ResponseEntity<TaskResponse> getOne(@PathVariable Long id, Authentication auth) {
+        return ResponseEntity.ok(taskService.getTask(id, auth.getName()));
     }
 
     @PostMapping
-    public ResponseEntity<TaskResponse> create(@Valid @RequestBody TaskRequest request) {
-        TaskResponse response = taskService.createTask(request);
-        taskEventPublisher.publish(new TaskEvent("TASK_CREATED", response.getId(), currentUser(), response));
+    public ResponseEntity<TaskResponse> create(@Valid @RequestBody TaskRequest request,
+                                               Authentication auth) {
+        TaskResponse response = taskService.createTask(request, auth.getName());
+        taskEventPublisher.publish(new TaskEvent("TASK_CREATED", response.getId(), auth.getName(), response));
         return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<TaskResponse> update(@PathVariable Long id,
-                                               @Valid @RequestBody TaskRequest request) {
-        TaskResponse response = taskService.updateTask(id, request);
-        taskEventPublisher.publish(new TaskEvent("TASK_UPDATED", id, currentUser(),
+                                               @Valid @RequestBody TaskRequest request,
+                                               Authentication auth) {
+        TaskResponse response = taskService.updateTask(id, request, auth.getName());
+        taskEventPublisher.publish(new TaskEvent("TASK_UPDATED", id, auth.getName(),
                 Map.of("status", response.getStatus(), "title", response.getTitle())));
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        taskService.deleteTask(id);
-        taskEventPublisher.publish(new TaskEvent("TASK_DELETED", id, currentUser(), Map.of()));
+    public ResponseEntity<Void> delete(@PathVariable Long id, Authentication auth) {
+        taskService.deleteTask(id, auth.getName());
+        taskEventPublisher.publish(new TaskEvent("TASK_DELETED", id, auth.getName(), Map.of()));
         return ResponseEntity.noContent().build();
-    }
-
-    private String currentUser() {
-        return SecurityContextHolder.getContext().getAuthentication().getName();
     }
 }

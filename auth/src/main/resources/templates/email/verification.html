@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><title>이메일 인증</title></head>
+<body style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px">
+  <h2 style="color:#F59E0B">🐝 TaskHive 이메일 인증</h2>
+  <p>안녕하세요, <strong th:text="${name}">사용자</strong>님!</p>
+  <p>아래 버튼을 클릭해 이메일 인증을 완료하세요. 링크는 24시간 후 만료됩니다.</p>
+  <a th:href="${verifyUrl}"
+     style="display:inline-block;padding:12px 24px;background:#F59E0B;color:white;text-decoration:none;border-radius:6px;margin:16px 0">
+    이메일 인증하기
+  </a>
+  <p style="color:#6B7280;font-size:12px">링크가 작동하지 않으면 아래 URL을 복사하세요:<br>
+    <span th:text="${verifyUrl}"></span>
+  </p>
+</body>
+</html>

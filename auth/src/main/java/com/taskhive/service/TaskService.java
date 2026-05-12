@@ -19,6 +19,7 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private final ProjectMemberRepository memberRepository;
 
     public List<TaskResponse> getAllTasks() {
         return taskRepository.findAllByDeletedAtIsNull().stream()
@@ -32,14 +33,15 @@ public class TaskService {
                 .toList();
     }
 
-    public TaskResponse getTask(Long id) {
-        return taskRepository.findByIdAndDeletedAtIsNull(id)
-                .map(TaskResponse::from)
+    public TaskResponse getTask(Long id, String requesterEmail) {
+        Task task = taskRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.TASK_NOT_FOUND));
+        checkProjectMembership(task, requesterEmail);
+        return TaskResponse.from(task);
     }
 
     @Transactional
-    public TaskResponse createTask(TaskRequest request) {
+    public TaskResponse createTask(TaskRequest request, String requesterEmail) {
         Task task = Task.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
@@ -51,6 +53,10 @@ public class TaskService {
         if (request.getProjectId() != null) {
             Project project = projectRepository.findByIdAndDeletedAtIsNull(request.getProjectId())
                     .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
+            User requester = findUserByEmail(requesterEmail);
+            if (!memberRepository.existsByProjectIdAndUserId(project.getId(), requester.getId())) {
+                throw new BusinessException(ErrorCode.NOT_PROJECT_MEMBER);
+            }
             task.setProject(project);
         }
         if (request.getAssigneeId() != null) {
@@ -62,9 +68,10 @@ public class TaskService {
     }
 
     @Transactional
-    public TaskResponse updateTask(Long id, TaskRequest request) {
+    public TaskResponse updateTask(Long id, TaskRequest request, String requesterEmail) {
         Task task = taskRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.TASK_NOT_FOUND));
+        checkProjectMembership(task, requesterEmail);
         task.setTitle(request.getTitle());
         task.setDescription(request.getDescription());
         if (request.getStatus() != null) task.setStatus(request.getStatus());
@@ -74,9 +81,23 @@ public class TaskService {
     }
 
     @Transactional
-    public void deleteTask(Long id) {
+    public void deleteTask(Long id, String requesterEmail) {
         Task task = taskRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.TASK_NOT_FOUND));
+        checkProjectMembership(task, requesterEmail);
         task.setDeletedAt(LocalDateTime.now());
+    }
+
+    private void checkProjectMembership(Task task, String requesterEmail) {
+        if (task.getProject() == null) return;
+        User requester = findUserByEmail(requesterEmail);
+        if (!memberRepository.existsByProjectIdAndUserId(task.getProject().getId(), requester.getId())) {
+            throw new BusinessException(ErrorCode.NOT_PROJECT_MEMBER);
+        }
+    }
+
+    private User findUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
     }
 }

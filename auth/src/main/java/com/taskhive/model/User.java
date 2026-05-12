@@ -3,6 +3,7 @@ package com.taskhive.model;
 import com.taskhive.model.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -30,4 +31,17 @@ public class User extends BaseEntity {
 
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL)
     private List<Project> projects;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private boolean emailVerified = false;
+
+    @Column(length = 64)
+    private String verificationToken;
+
+    @Column(name = "verification_token_expires_at")
+    private LocalDateTime verificationTokenExpiresAt;
 }
