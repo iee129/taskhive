@@ -12,7 +12,7 @@
 | 데이터베이스 | PostgreSQL 16 · Flyway 마이그레이션 |
 | 캐시 | Redis 7 |
 | AI | Ollama (llama3.2) — 태스크 자연어 파싱 · 요약 |
-| 인프라 | Docker Compose · Kubernetes (minikube 검증) |
+| 인프라 | Docker Compose · Kubernetes (minikube 검증) · Vercel + Railway |
 | CI/CD | GitHub Actions · GHCR 이미지 푸시 · Dependabot |
 | 테스트 | JUnit 5 · Testcontainers · JaCoCo · Vitest · Playwright E2E |
 
@@ -85,6 +85,30 @@ kubectl apply -f k8s/ingress.yaml
 echo "$(minikube ip) taskhive.local" | sudo tee -a /etc/hosts
 # → http://taskhive.local 접속
 ```
+
+### Vercel + Railway 클라우드 배포
+
+Docker 없이 무료 플랜으로 실 URL을 얻을 수 있는 배포 옵션이다.
+
+| 서비스 | 플랫폼 | URL 형식 |
+|--------|--------|---------|
+| 프론트엔드 (React) | Vercel | `https://taskhive.vercel.app` |
+| 백엔드 (Spring Boot) | Railway | `https://taskhive-backend.up.railway.app` |
+| PostgreSQL | Railway Add-on | 자동 연결 |
+| Redis | Railway Add-on | 자동 연결 |
+
+```bash
+# 1. Railway에서 auth/ 디렉터리 연결 후 환경변수 설정
+#    (auth/.env.example 참고)
+
+# 2. Vercel에서 frontend/ 디렉터리 연결 후 환경변수 설정
+#    VITE_API_URL=https://<your-backend>.up.railway.app
+
+# 3. 헬스체크 확인
+curl https://<backend>.up.railway.app/actuator/health
+```
+
+상세 절차: [`docs/07-infra/deploy-vercel-railway.md`](docs/07-infra/deploy-vercel-railway.md)
 
 ## 개발 로드맵
 

@@ -6,7 +6,8 @@
 |------|--------------|------|
 | 로컬 개발 | Docker Compose | 개발자 로컬 실행 |
 | CI | GitHub Actions | 빌드·테스트 자동화 |
-| 프로덕션 | Kubernetes | 배포·스케일링·자동복구 |
+| 프로덕션 (K8s) | Kubernetes | 배포·스케일링·자동복구 |
+| 프로덕션 (클라우드) | Vercel + Railway | 무료 플랜 실 배포 (비 Docker 환경) |
 
 ## 아키텍처 개요
 
