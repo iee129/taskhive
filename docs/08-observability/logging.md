@@ -70,6 +70,32 @@ K8s Pod 로그
 K8s Pod 로그 → Loki → Grafana
 ```
 
+## MDC 요청 추적 (requestId)
+
+`RequestIdFilter`가 모든 요청에 `requestId`를 MDC에 주입합니다 (Phase 5~).
+
+```
+클라이언트 → X-Request-Id: abc12345 헤더 전송 (선택)
+           ← X-Request-Id: abc12345 응답 헤더에도 포함
+```
+
+- 클라이언트가 `X-Request-Id`를 보내면 그대로 사용
+- 없으면 UUID 앞 8자리를 서버에서 자동 생성
+- 에러 응답 `ErrorResponse.requestId` 필드에도 포함
+
+**logback 패턴에 requestId 추가:**
+
+```xml
+<pattern>%d{HH:mm:ss} %-5level [%X{requestId}] %logger{36} - %msg%n</pattern>
+```
+
+**로그 출력 예시:**
+
+```
+10:30:00 INFO  [a1b2c3d4] c.t.service.TaskService - 태스크 생성 완료: id=5
+10:30:00 ERROR [a1b2c3d4] c.t.e.GlobalExceptionHandler - TASK_NOT_FOUND
+```
+
 ## 보안 로깅 원칙
 
 - 비밀번호, JWT 토큰 절대 로그 기록 금지

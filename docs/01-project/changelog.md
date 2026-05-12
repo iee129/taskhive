@@ -8,13 +8,40 @@
 ## [미출시]
 
 ### 추가 예정
-- Phase 5: ErrorCode enum · Soft Delete · Project 리소스 · OpenAPI · MDC
 - Phase 6: 페이지네이션 · 칸반 보드 · 댓글 · AI 자연어 태스크 생성 · 일간 다이제스트
 - Phase 7: Testcontainers · JaCoCo 80% · Playwright E2E
 - Phase 8: TanStack Query · Redis 캐싱 · N+1 제거
 - Phase 9: 다크모드 · 반응형 · Error Boundary
 - Phase 10: Docker Compose 통합 (PostgreSQL + Redis + Ollama)
 - Phase 11: GitHub Actions CI/CD · GHCR 이미지 푸시
+
+---
+
+## [0.6.0] — 2026-05-12
+
+### 추가
+- `ErrorCode` enum — 7개 에러 코드 (HttpStatus + 한글 메시지 내장)
+- `BusinessException` — `ErrorCode` 기반 `RuntimeException`
+- `ErrorResponse` record — `code`, `message`, `status`, `requestId`, `fields` (`@JsonInclude NON_NULL`)
+- `BaseEntity` — `@MappedSuperclass` + JPA Auditing (`createdAt`, `updatedAt`)
+- `RequestIdFilter` — `OncePerRequestFilter`, `X-Request-Id` 헤더 → MDC `requestId` 추적
+- `ProjectController` — Project CRUD 5개 엔드포인트 (`/api/projects/**`)
+- `ProjectService` — 소유자 권한 검증 + 소프트 삭제
+- `ProjectRequest` / `ProjectResponse` DTO
+- `ProjectRepository` — `findByOwnerIdAndDeletedAtIsNull`, `findByIdAndDeletedAtIsNull`
+- SpringDoc OpenAPI `2.5.0` 의존성 — `/swagger-ui.html` Swagger UI 제공
+
+### 수정
+- `User`, `Task`, `Project` — `extends BaseEntity`, `@PrePersist` 제거
+- `Task`, `Project` — `deleted_at` 소프트 삭제 컬럼 추가
+- `TaskRepository` — `findAllByDeletedAtIsNull`, `findByIdAndDeletedAtIsNull` 쿼리 추가
+- `TaskService` — `IllegalArgumentException` → `BusinessException` 전환, 소프트 삭제 적용
+- `GlobalExceptionHandler` — `BusinessException` 핸들러 추가, 응답 형식 `ErrorResponse` 통일
+- `SecurityConfig` — `/v3/api-docs/**`, `/swagger-ui/**`, `/swagger-ui.html` permitAll 추가
+- `TaskHiveApplication` — `@EnableJpaAuditing` 추가
+
+### 검증
+- `mvn test` — 33개 테스트 전체 통과 (기존 32개 + 신규 1개 AC 검증)
 
 ---
 

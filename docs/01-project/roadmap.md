@@ -87,11 +87,9 @@ CREATE INDEX idx_refresh_tokens_user ON refresh_tokens(user_id);
 
 ---
 
-## Phase 5 — 아키텍처 고도화 🚧 예정
+## Phase 5 — 아키텍처 고도화 ✅ 완료
 
 > ErrorCode enum · Soft Delete · Project 리소스 · OpenAPI · MDC 요청 추적
-
-**선행 조건**: Phase 4 완료
 
 ### 작업 순서
 
@@ -160,11 +158,15 @@ ALTER TABLE tasks
 
 ### 완료 기준 (AC)
 
-- [ ] 존재하지 않는 Task 조회 시 `{"code":"TASK_NOT_FOUND","status":404}` 반환
-- [ ] Task 삭제 후 목록 조회 시 해당 행 미노출, DB에는 `deleted_at` 기록됨
-- [ ] `GET /swagger-ui.html` 접속 시 전체 엔드포인트 명세 확인 및 직접 호출 가능
-- [ ] 모든 API 로그에 `requestId` 필드 포함 (로그 grep 가능)
-- [ ] 잘못된 필드(`email` 형식 오류 등) 요청 시 `{"code":"INVALID_INPUT","fields":[...]}` 반환
+- [x] 존재하지 않는 Task 조회 시 `{"code":"TASK_NOT_FOUND","status":404}` 반환
+- [x] Task 삭제 후 목록 조회 시 해당 행 미노출, DB에는 `deleted_at` 기록됨
+- [x] `GET /swagger-ui.html` 접속 시 전체 엔드포인트 명세 확인 및 직접 호출 가능
+- [x] 모든 API 로그에 `requestId` 필드 포함 (로그 grep 가능)
+- [x] 잘못된 필드(`email` 형식 오류 등) 요청 시 `{"code":"INVALID_INPUT","fields":[...]}` 반환
+
+### 검증
+
+- `mvn test` — 33개 테스트 전체 통과
 
 ---
 

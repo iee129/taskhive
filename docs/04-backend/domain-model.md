@@ -11,6 +11,7 @@ erDiagram
         String password
         String role
         LocalDateTime createdAt
+        LocalDateTime updatedAt
     }
     REFRESH_TOKEN {
         Long id PK
@@ -25,6 +26,8 @@ erDiagram
         String description
         Long ownerId FK
         LocalDateTime createdAt
+        LocalDateTime updatedAt
+        LocalDateTime deletedAt
     }
     TASK {
         Long id PK
@@ -35,6 +38,8 @@ erDiagram
         Long assigneeId FK
         LocalDate dueDate
         LocalDateTime createdAt
+        LocalDateTime updatedAt
+        LocalDateTime deletedAt
     }
 
     USER ||--o{ REFRESH_TOKEN : "보유"
@@ -43,13 +48,34 @@ erDiagram
     PROJECT ||--o{ TASK : "포함"
 ```
 
+## BaseEntity
+
+`User`, `Task`, `Project`가 공통으로 상속하는 `@MappedSuperclass`.  
+JPA Auditing(`@EnableJpaAuditing`)으로 타임스탬프를 자동 관리합니다.
+
+```java
+@MappedSuperclass
+@EntityListeners(AuditingEntityListener.class)
+@Getter
+public abstract class BaseEntity {
+
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+}
+```
+
 ## Entity 상세
 
 ### User
 
 ```java
 @Entity @Table(name = "users")
-public class User {
+public class User extends BaseEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
@@ -66,9 +92,6 @@ public class User {
     @Column(nullable = false)
     @Builder.Default
     private Role role = Role.USER;     // USER | ADMIN
-
-    @CreationTimestamp
-    private LocalDateTime createdAt;
 }
 ```
 
@@ -97,11 +120,36 @@ public class RefreshToken {
 }
 ```
 
+### Project
+
+```java
+@Entity @Table(name = "projects")
+public class Project extends BaseEntity {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private String name;
+
+    private String description;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id", nullable = false)
+    private User owner;
+
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL)
+    private List<Task> tasks;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;   // null이면 활성 프로젝트
+}
+```
+
 ### Task
 
 ```java
 @Entity @Table(name = "tasks")
-public class Task {
+public class Task extends BaseEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
@@ -124,8 +172,8 @@ public class Task {
 
     private LocalDate dueDate;
 
-    @CreationTimestamp
-    private LocalDateTime createdAt;
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;   // null이면 활성 태스크
 
     public enum Status { TODO, IN_PROGRESS, DONE }
 }
@@ -142,6 +190,17 @@ stateDiagram-v2
     DONE --> IN_PROGRESS : 재작업
 ```
 
+## 소프트 삭제 전략
+
+`Task`와 `Project`는 `DELETE` 시 행을 물리 삭제하지 않고 `deleted_at`에 시각을 기록합니다.
+
+| 동작 | 구현 |
+|------|------|
+| 삭제 | `entity.setDeletedAt(LocalDateTime.now())` |
+| 목록 조회 | `findAllByDeletedAtIsNull()` |
+| 단건 조회 | `findByIdAndDeletedAtIsNull(id)` |
+| 존재하지 않는 항목 | `BusinessException(TASK_NOT_FOUND)` / `PROJECT_NOT_FOUND` |
+
 ## 비즈니스 규칙
 
 | 규칙 | 설명 |
@@ -151,5 +210,5 @@ stateDiagram-v2
 | 기본 역할 | 회원가입 시 `Role.USER` 자동 부여 |
 | Task 기본 상태 | 생성 시 `TODO`로 초기화 |
 | Refresh Token Rotation | `/refresh` 호출 시 기존 토큰 삭제 후 신규 발급 |
-| Soft Delete | 현재 미구현 — `DELETE` 시 실제 행 삭제 |
-| 소유권 검증 | Task 수정·삭제 전 `assignee.email == jwtEmail` 검증 (예정) |
+| 소유권 검증 | Project 수정·삭제 전 `owner.email == authentication.getName()` 검증 |
+| 소프트 삭제 | Task·Project `DELETE` → `deleted_at` 기록, 목록 쿼리에서 자동 제외 |
