@@ -10,36 +10,24 @@ export default function WakingUp({ children }: { children: React.ReactNode }) {
     if (!API_URL) return;
 
     let cancelled = false;
-    let timer: ReturnType<typeof setInterval>;
 
     const poll = async () => {
       try {
         const res = await fetch(`${API_URL}/actuator/health`, { signal: AbortSignal.timeout(5000) });
-        if (res.ok && !cancelled) {
-          setReady(true);
-          clearInterval(timer);
-        }
+        if (res.ok && !cancelled) setReady(true);
       } catch {
         // backend still sleeping
       }
     };
 
     poll();
-    timer = setInterval(() => {
-      if (!cancelled) {
-        setElapsed((s) => s + 3);
-        poll();
-      }
-    }, 3000);
-
-    const counter = setInterval(() => {
-      if (!cancelled && !ready) setElapsed((s) => s + 1);
-    }, 1000);
+    const pollTimer = setInterval(poll, 3000);
+    const elapsedTimer = setInterval(() => setElapsed((s) => s + 1), 1000);
 
     return () => {
       cancelled = true;
-      clearInterval(timer);
-      clearInterval(counter);
+      clearInterval(pollTimer);
+      clearInterval(elapsedTimer);
     };
   }, []);
 
