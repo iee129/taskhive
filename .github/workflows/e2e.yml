@@ -10,35 +10,41 @@ on:
     branches: [master]
 
 jobs:
-  e2e:
+  e2e-blocking:
+    name: E2E (docker compose — blocking)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate target environment
-        run: |
-          if [ -z "$E2E_BACKEND_URL" ]; then
-            echo "WARNING: E2E_BACKEND_URL is not set. Seed step will be skipped."
-          fi
-        env:
-          E2E_BACKEND_URL: ${{ secrets.E2E_BACKEND_URL }}
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
 
-      - name: Seed test data
-        if: ${{ secrets.E2E_BACKEND_URL != '' }}
-        run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$E2E_BACKEND_URL/api/dev/seed")
-          echo "Seed response: $STATUS"
-          if [ "$STATUS" != "200" ] && [ "$STATUS" != "409" ]; then
-            echo "WARNING: Seed returned $STATUS — tests may fail if test@example.com does not exist"
-          fi
-        env:
-          E2E_BACKEND_URL: ${{ secrets.E2E_BACKEND_URL }}
+      - name: Build backend JAR
+        run: cd auth && mvn package -DskipTests -q
 
-      - name: Setup Node.js
+      - name: Start stack
+        run: docker compose up -d --build
+        timeout-minutes: 10
+
+      - name: Wait for backend health
+        run: |
+          for i in $(seq 1 30); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/actuator/health)
+            [ "$STATUS" = "200" ] && echo "Backend ready" && exit 0
+            echo "Waiting... ($i/30)"
+            sleep 5
+          done
+          echo "Backend did not become healthy" && exit 1
+
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: npm
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
@@ -47,10 +53,10 @@ jobs:
       - name: Install Playwright Chromium
         run: cd frontend && npx playwright install --with-deps chromium
 
-      - name: Run E2E tests
+      - name: Run E2E tests (local stack)
         run: cd frontend && npx playwright test
         env:
-          BASE_URL: ${{ secrets.E2E_BASE_URL }}
+          BASE_URL: http://localhost
 
       - name: Upload test report
         uses: actions/upload-artifact@v4
@@ -59,3 +65,34 @@ jobs:
           name: playwright-report
           path: frontend/playwright-report/
           retention-days: 7
+
+      - name: Tear down stack
+        if: always()
+        run: docker compose down -v
+
+  e2e-live-smoke:
+    name: Live smoke (non-blocking)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    if: github.ref == 'refs/heads/master'
+    needs: e2e-blocking
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: cd frontend && npm ci
+
+      - name: Install Playwright Chromium
+        run: cd frontend && npx playwright install --with-deps chromium
+
+      - name: Run smoke tests (live Vercel)
+        run: cd frontend && npx playwright test --grep "@smoke"
+        env:
+          BASE_URL: ${{ secrets.E2E_BASE_URL }}

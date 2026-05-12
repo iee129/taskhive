@@ -2,6 +2,33 @@
 
 > 벌집처럼 유기적으로 연결되는 팀 작업·프로젝트 통합 관리 플랫폼
 
+## 🚀 데모 (무료 호스팅)
+
+| 링크 | 설명 |
+|------|------|
+| **[taskhive.vercel.app](https://taskhive.vercel.app)** *(배포 후 업데이트 예정)* | 프론트엔드 (Vercel) |
+| **백엔드** | Render Web Service |
+
+**데모 계정**: `test@example.com` / `Test1234!`
+
+> ⚠️ **무료 티어 안내**: 백엔드가 슬립 상태일 경우 첫 접속 시 30–60초 대기가 발생할 수 있습니다. 화면의 "서버를 깨우는 중..." 안내를 기다려 주세요.
+>
+> ⚠️ **공개 데모는 Groq(클라우드 LLM)를 사용합니다.** 셀프호스팅 시 기본값은 Ollama(로컬) — 데이터가 외부로 나가지 않습니다.
+
+## ⚡ 빠른 시작 (로컬 셀프호스팅)
+
+```bash
+git clone https://github.com/iee129/taskhive.git
+cd taskhive
+docker compose up
+```
+
+- 프론트엔드: http://localhost
+- 백엔드 API: http://localhost:8080
+- 데모 계정이 자동 생성됩니다 (`test@example.com` / `Test1234!`)
+
+> **사전 요구 사항**: Docker Desktop 설치 필요. 첫 빌드는 약 5–10분 소요됩니다.
+
 ## 기술 스택
 
 | 레이어 | 기술 |
@@ -13,7 +40,7 @@
 | 이메일 | SMTP (이메일 인증 · 비밀번호 재설정) |
 | Rate Limiting | bucket4j |
 | 에러 모니터링 | Sentry |
-| 배포 | Railway (백엔드) + Vercel (프론트엔드) |
+| 배포 | Render (백엔드) + Vercel (프론트엔드) + Neon (Postgres) |
 | CI | GitHub Actions |
 
 ## 구현된 기능
