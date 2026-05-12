@@ -6,14 +6,24 @@
 
 ## GET /api/tasks
 
-현재 로그인한 사용자에게 할당된 태스크 목록을 반환합니다.
+태스크 목록을 반환합니다. 필터 파라미터를 조합해 검색할 수 있습니다.
 
 ### 요청
 
 ```http
-GET /api/tasks
+GET /api/tasks?status=TODO&priority=HIGH&search=로그인
 Authorization: Bearer {token}
 ```
+
+### 쿼리 파라미터
+
+| 파라미터 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| `status` | string | 선택 | `TODO` / `IN_PROGRESS` / `DONE` |
+| `priority` | string | 선택 | `LOW` / `MEDIUM` / `HIGH` |
+| `search` | string | 선택 | 태스크 제목 포함 검색 (대소문자 무시) |
+
+파라미터 없이 호출하면 전체 목록 반환.
 
 ### 응답 (200 OK)
 
@@ -24,21 +34,23 @@ Authorization: Bearer {token}
     "title": "API 명세 작성",
     "description": "REST API Markdown 문서 작성",
     "status": "IN_PROGRESS",
+    "priority": "HIGH",
     "dueDate": "2026-06-01",
-    "createdAt": "2026-05-10T09:00:00Z"
+    "createdAt": "2026-05-10T09:00:00"
   },
   {
     "id": 2,
     "title": "프론트엔드 로그인 UI",
     "description": null,
     "status": "TODO",
+    "priority": "MEDIUM",
     "dueDate": null,
-    "createdAt": "2026-05-11T14:00:00Z"
+    "createdAt": "2026-05-11T14:00:00"
   }
 ]
 ```
 
-담당 태스크가 없으면 빈 배열 `[]` 반환.
+태스크가 없으면 빈 배열 `[]` 반환.
 
 ---
 
@@ -58,6 +70,7 @@ Content-Type: application/json
 {
   "title": "새 태스크 제목",
   "description": "선택적 설명",
+  "priority": "HIGH",
   "dueDate": "2026-06-30"
 }
 ```
@@ -66,9 +79,11 @@ Content-Type: application/json
 |------|------|------|------|
 | `title` | string | 필수 | 500자 이하 |
 | `description` | string | 선택 | — |
-| `dueDate` | string (date) | 선택 | `YYYY-MM-DD`, 오늘 이후 |
+| `priority` | string | 선택 | `LOW` / `MEDIUM` / `HIGH` (기본값 `MEDIUM`) |
+| `status` | string | 선택 | `TODO` / `IN_PROGRESS` / `DONE` (기본값 `TODO`) |
+| `dueDate` | string (date) | 선택 | `YYYY-MM-DD` |
 
-### 응답 (201 Created)
+### 응답 (200 OK)
 
 ```json
 {
@@ -76,8 +91,9 @@ Content-Type: application/json
   "title": "새 태스크 제목",
   "description": "선택적 설명",
   "status": "TODO",
+  "priority": "HIGH",
   "dueDate": "2026-06-30",
-  "createdAt": "2026-05-12T10:30:00Z"
+  "createdAt": "2026-05-12T10:30:00"
 }
 ```
 
@@ -108,7 +124,8 @@ Content-Type: application/json
 |------|------|------|---------|
 | `title` | string | 필수 | 500자 이하 |
 | `description` | string | 선택 | — |
-| `status` | string | 선택 | `TODO`, `IN_PROGRESS`, `DONE` |
+| `status` | string | 선택 | `TODO` / `IN_PROGRESS` / `DONE` |
+| `priority` | string | 선택 | `LOW` / `MEDIUM` / `HIGH` |
 | `dueDate` | string | 선택 | `YYYY-MM-DD` |
 
 ### 응답 (200 OK)

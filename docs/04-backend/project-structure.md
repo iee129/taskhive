@@ -7,7 +7,10 @@ auth/
     ├── main/
     │   ├── java/com/taskhive/
     │   │   ├── TaskHiveApplication.java          # @SpringBootApplication @EnableJpaAuditing
+    │   │   ├── aspect/
+    │   │   │   └── TaskActivityAspect.java        # @AfterReturning AOP — CRUD 자동 활동 기록
     │   │   ├── config/
+    │   │   │   ├── AppConfig.java                # RestTemplate 빈 등록
     │   │   │   ├── JwtUtil.java                  # JWT 생성·검증
     │   │   │   ├── JwtFilter.java                # 토큰 추출 및 SecurityContext 주입
     │   │   │   └── SecurityConfig.java           # 필터 체인, CORS, @EnableMethodSecurity
@@ -16,25 +19,35 @@ auth/
     │   │   ├── controller/
     │   │   │   ├── AuthController.java           # /register, /login, /refresh, /logout, /me, /password
     │   │   │   ├── AdminController.java          # /api/admin/health (@PreAuthorize ADMIN)
-    │   │   │   ├── TaskController.java           # GET/POST/PUT/DELETE /api/tasks/*
-    │   │   │   └── ProjectController.java        # GET/POST/PUT/DELETE /api/projects/*
+    │   │   │   ├── TaskController.java           # GET/POST/PUT/DELETE /api/tasks/* (필터 파라미터 지원)
+    │   │   │   ├── ProjectController.java        # GET/POST/PUT/DELETE /api/projects/*
+    │   │   │   ├── CommentController.java        # GET/POST/DELETE /api/tasks/{id}/comments
+    │   │   │   ├── StatsController.java          # GET /api/stats, /api/stats/activities
+    │   │   │   └── AiController.java             # POST /api/ai/suggest-task, /api/ai/create-task
     │   │   ├── service/
     │   │   │   ├── AuthService.java              # 회원가입·로그인·비밀번호 변경
     │   │   │   ├── RefreshTokenService.java      # 발급·Rotation·무효화
-    │   │   │   ├── TaskService.java              # 태스크 CRUD (소프트 삭제)
+    │   │   │   ├── TaskService.java              # 태스크 CRUD + 필터 (소프트 삭제)
     │   │   │   ├── ProjectService.java           # 프로젝트 CRUD (소유자 검증 + 소프트 삭제)
+    │   │   │   ├── CommentService.java           # 댓글 조회·등록·삭제 (작성자 본인만 삭제)
+    │   │   │   ├── StatsService.java             # 태스크·우선순위·완료율·기한초과 집계
+    │   │   │   ├── AiService.java                # Ollama 연동 자연어→TaskRequest 파싱, fallback
     │   │   │   └── UserDetailsServiceImpl.java   # Spring Security UserDetails
     │   │   ├── repository/
     │   │   │   ├── UserRepository.java
     │   │   │   ├── RefreshTokenRepository.java   # findByTokenForUpdate (PESSIMISTIC_WRITE)
-    │   │   │   ├── TaskRepository.java           # findAllByDeletedAtIsNull 등
-    │   │   │   └── ProjectRepository.java        # findByOwnerIdAndDeletedAtIsNull 등
+    │   │   │   ├── TaskRepository.java           # findAllByDeletedAtIsNull + findFiltered 동적 쿼리
+    │   │   │   ├── ProjectRepository.java        # findByOwnerIdAndDeletedAtIsNull 등
+    │   │   │   ├── CommentRepository.java        # findByTaskIdOrderByCreatedAtAsc
+    │   │   │   └── TaskActivityRepository.java   # findTop50ByOrderByOccurredAtDesc
     │   │   ├── model/
     │   │   │   ├── BaseEntity.java               # @MappedSuperclass, createdAt, updatedAt
     │   │   │   ├── User.java                     # users 테이블 Entity (extends BaseEntity)
     │   │   │   ├── RefreshToken.java             # refresh_tokens 테이블 Entity
-    │   │   │   ├── Task.java                     # tasks 테이블 Entity (extends BaseEntity, deletedAt)
+    │   │   │   ├── Task.java                     # tasks 테이블 Entity (Status + Priority enum, deletedAt)
     │   │   │   ├── Project.java                  # projects 테이블 Entity (extends BaseEntity, deletedAt)
+    │   │   │   ├── Comment.java                  # comments 테이블 Entity (extends BaseEntity)
+    │   │   │   ├── TaskActivity.java             # task_activities 테이블 Entity (Audit Log)
     │   │   │   └── enums/Role.java               # USER, ADMIN
     │   │   ├── dto/
     │   │   │   ├── AuthRequest.java
@@ -42,10 +55,15 @@ auth/
     │   │   │   ├── RegisterRequest.java
     │   │   │   ├── RefreshResponse.java
     │   │   │   ├── PasswordChangeRequest.java
-    │   │   │   ├── TaskRequest.java
-    │   │   │   ├── TaskResponse.java
+    │   │   │   ├── TaskRequest.java              # + priority 필드
+    │   │   │   ├── TaskResponse.java             # + priority 필드
     │   │   │   ├── ProjectRequest.java
     │   │   │   ├── ProjectResponse.java
+    │   │   │   ├── CommentRequest.java
+    │   │   │   ├── CommentResponse.java
+    │   │   │   ├── StatsResponse.java            # 통계 집계 응답
+    │   │   │   ├── TaskActivityResponse.java     # Audit Log 항목 응답
+    │   │   │   ├── AiTaskRequest.java            # 자연어 설명 + projectId
     │   │   │   └── ErrorResponse.java            # code, message, status, requestId, fields
     │   │   └── exception/
     │   │       ├── ErrorCode.java                # 에러 코드 enum (HttpStatus + 한글 메시지)
@@ -88,7 +106,8 @@ spring:
 
 | 패키지 | 역할 |
 |--------|------|
-| `config/` | Spring Bean 설정 (Security, JWT) |
+| `aspect/` | AOP Aspect (Audit Log 자동 기록) |
+| `config/` | Spring Bean 설정 (Security, JWT, RestTemplate) |
 | `filter/` | 서블릿 필터 (MDC 요청 추적) |
 | `controller/` | HTTP 요청/응답 처리 |
 | `service/` | 비즈니스 로직 |

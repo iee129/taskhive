@@ -13,18 +13,28 @@ frontend/
     ├── api/
     │   ├── client.ts             # Axios 인스턴스 + JWT 인터셉터
     │   ├── auth.ts               # register, login, me API 함수
-    │   └── tasks.ts              # getTasks, createTask, updateTask, deleteTask
+    │   ├── tasks.ts              # getTasks(filter?), getTask, createTask, updateTask, deleteTask
+    │   ├── comments.ts           # getComments, addComment, deleteComment
+    │   ├── stats.ts              # getStats, getActivities
+    │   └── ai.ts                 # suggestTask, createTaskFromAi
     ├── components/
     │   ├── PrivateRoute.tsx      # 비인증 접근 시 /login 리다이렉트
-    │   └── Layout.tsx            # Ant Design 사이드바 레이아웃 + 로그아웃
+    │   ├── Layout.tsx            # Ant Design 사이드바 레이아웃 (태스크·칸반·통계·프로필)
+    │   ├── FilterBar.tsx         # 상태·우선순위·키워드 필터 바
+    │   ├── CommentList.tsx       # 댓글 목록 + 입력 폼 (Drawer 내 사용)
+    │   ├── ActivityFeed.tsx      # 활동 이력 Timeline 위젯
+    │   └── AiTaskInput.tsx       # 자연어 입력 → AI 제안 → 태스크 생성 모달
     ├── pages/
     │   ├── LoginPage.tsx         # /login
     │   ├── RegisterPage.tsx      # /register
-    │   ├── TasksPage.tsx         # /tasks — 목록 + 생성/수정/삭제 모달
+    │   ├── TasksPage.tsx         # /tasks — 목록·FilterBar·우선순위·Drawer 댓글·AI 버튼
+    │   ├── KanbanPage.tsx        # /kanban — @hello-pangea/dnd 드래그앤드롭 3열 보드
+    │   ├── StatsPage.tsx         # /stats — 통계 카드 + 완료율 + ActivityFeed
     │   └── ProfilePage.tsx       # /profile — 내 정보
     └── types/
         ├── auth.ts               # AuthRequest, RegisterRequest, AuthResponse
-        └── task.ts               # TaskStatus, TaskRequest, TaskResponse
+        └── task.ts               # TaskStatus, TaskPriority, TaskRequest, TaskResponse,
+                                  # CommentResponse, TaskActivityResponse, StatsResponse
 ```
 
 ## vite.config.ts 핵심 설정
@@ -51,6 +61,8 @@ export default defineConfig({
 | `/login` | LoginPage | 불필요 |
 | `/register` | RegisterPage | 불필요 |
 | `/tasks` | TasksPage | ✅ |
+| `/kanban` | KanbanPage | ✅ |
+| `/stats` | StatsPage | ✅ |
 | `/profile` | ProfilePage | ✅ |
 | `*` | Navigate → `/tasks` | — |
 

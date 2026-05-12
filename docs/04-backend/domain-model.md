@@ -34,6 +34,7 @@ erDiagram
         String title
         String description
         Status status
+        Priority priority
         Long projectId FK
         Long assigneeId FK
         LocalDate dueDate
@@ -41,11 +42,30 @@ erDiagram
         LocalDateTime updatedAt
         LocalDateTime deletedAt
     }
+    COMMENT {
+        Long id PK
+        String content
+        Long taskId FK
+        Long authorId FK
+        LocalDateTime createdAt
+        LocalDateTime updatedAt
+    }
+    TASK_ACTIVITY {
+        Long id PK
+        Long taskId
+        String taskTitle
+        String actorEmail
+        String action
+        String detail
+        LocalDateTime occurredAt
+    }
 
     USER ||--o{ REFRESH_TOKEN : "보유"
     USER ||--o{ PROJECT : "소유"
     USER ||--o{ TASK : "담당"
     PROJECT ||--o{ TASK : "포함"
+    TASK ||--o{ COMMENT : "포함"
+    USER ||--o{ COMMENT : "작성"
 ```
 
 ## BaseEntity
@@ -162,6 +182,10 @@ public class Task extends BaseEntity {
     @Column(nullable = false)
     private Status status = Status.TODO;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Priority priority = Priority.MEDIUM;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id")
     private Project project;
@@ -176,6 +200,55 @@ public class Task extends BaseEntity {
     private LocalDateTime deletedAt;   // null이면 활성 태스크
 
     public enum Status { TODO, IN_PROGRESS, DONE }
+    public enum Priority { LOW, MEDIUM, HIGH }
+}
+```
+
+### Comment
+
+```java
+@Entity @Table(name = "comments")
+public class Comment extends BaseEntity {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, length = 1000)
+    private String content;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "task_id", nullable = false)
+    private Task task;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "author_id", nullable = false)
+    private User author;
+}
+```
+
+### TaskActivity (Audit Log)
+
+```java
+@Entity @Table(name = "task_activities")
+public class TaskActivity {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "task_id", nullable = false)
+    private Long taskId;
+
+    @Column(name = "task_title")
+    private String taskTitle;
+
+    @Column(name = "actor_email", nullable = false)
+    private String actorEmail;
+
+    @Column(nullable = false, length = 50)
+    private String action;     // CREATED | UPDATED | DELETED | COMMENTED
+
+    private String detail;
+
+    @Column(name = "occurred_at", nullable = false)
+    private LocalDateTime occurredAt;
 }
 ```
 
@@ -209,6 +282,9 @@ stateDiagram-v2
 | 비밀번호 저장 | 평문 저장 금지 — BCrypt 해시만 저장 |
 | 기본 역할 | 회원가입 시 `Role.USER` 자동 부여 |
 | Task 기본 상태 | 생성 시 `TODO`로 초기화 |
+| Task 기본 우선순위 | 생성 시 `MEDIUM`으로 초기화 |
 | Refresh Token Rotation | `/refresh` 호출 시 기존 토큰 삭제 후 신규 발급 |
 | 소유권 검증 | Project 수정·삭제 전 `owner.email == authentication.getName()` 검증 |
+| 댓글 삭제 권한 | 댓글 작성자 본인만 삭제 가능 (`author.email == authentication.getName()`) |
 | 소프트 삭제 | Task·Project `DELETE` → `deleted_at` 기록, 목록 쿼리에서 자동 제외 |
+| Audit Log | `TaskActivityAspect`가 Task CRUD·댓글 작성 성공 시 `task_activities`에 자동 기록 |
