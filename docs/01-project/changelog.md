@@ -9,7 +9,17 @@
 
 ### 추가 예정
 - Phase 6.5: **WebSocket STOMP 실시간 동기화** (칸반 보드 카드 즉시 반영)
-- Phase 11: GitHub Actions CI/CD · GHCR 이미지 푸시
+- Phase 12: Kubernetes 배포 (선택)
+
+---
+
+## [0.12.0] — 2026-05-12
+
+### 추가
+- `ci-backend.yml` — PR 트리거: `mvn verify` + JaCoCo 커버리지 PR 자동 코멘트 (`madrapps/jacoco-report`, 전체 80%·변경파일 70% 게이트)
+- `ci-frontend.yml` — PR 트리거: `npm run build` + Vitest + Playwright E2E (chromium), 실패 시 playwright-report 아티팩트 업로드
+- `cd-docker.yml` — `master` 병합 트리거: GHCR 백엔드·프론트엔드 이미지 빌드·푸시 (`latest` + `sha-{commit}` 태그, Buildx 레이어 캐시)
+- `dependabot.yml` — maven·npm·github-actions 주간 자동 PR 생성
 
 ---
 

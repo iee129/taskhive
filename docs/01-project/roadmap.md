@@ -646,11 +646,11 @@ location / {
 
 ---
 
-## Phase 11 — CI/CD 🚧 예정
+## Phase 11 — CI/CD ✅ 완료
 
 > GitHub Actions · 커버리지 게이트 · Docker 이미지 GHCR 푸시
 
-**브랜치**: `cicd` | **선행 조건**: Phase 10 완료
+**브랜치**: `cicd` | **완료**: 2026-05-12
 
 ### 작업 순서
 
@@ -691,11 +691,11 @@ ghcr.io/iee129/taskhive-frontend:latest
 
 ### 완료 기준 (AC)
 
-- [ ] PR 오픈 시 백엔드·프론트엔드 CI 자동 실행, 커버리지 미달 시 빌드 실패
-- [ ] PR에 JaCoCo 커버리지 수치 자동 코멘트
-- [ ] `main` 병합 시 GHCR에 이미지 자동 푸시 (Actions 로그 확인)
-- [ ] Dependabot PR 자동 생성 확인 (최소 1개)
-- [ ] 테스트 실패하는 코드 PR 시 GitHub Checks 빨간 표시
+- [x] PR 오픈 시 백엔드·프론트엔드 CI 자동 실행, 커버리지 미달 시 빌드 실패
+- [x] PR에 JaCoCo 커버리지 수치 자동 코멘트
+- [x] `main` 병합 시 GHCR에 이미지 자동 푸시 (Actions 로그 확인)
+- [x] Dependabot PR 자동 생성 확인 (최소 1개)
+- [x] 테스트 실패하는 코드 PR 시 GitHub Checks 빨간 표시
 
 ---
 
