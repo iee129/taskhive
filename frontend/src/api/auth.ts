@@ -9,3 +9,6 @@ export const login = (data: AuthRequest) =>
 
 export const me = () =>
   client.get<AuthResponse>('/api/auth/me').then((r) => r.data);
+
+export const checkEmail = (email: string) =>
+  client.get<{ available: boolean }>('/api/auth/check-email', { params: { email } }).then((r) => r.data);

@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { Spin } from 'antd';
+import { ConfigProvider, Spin } from 'antd';
+import { useThemeContext } from './contexts/ThemeContext';
 import PrivateRoute from './components/PrivateRoute';
 import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
@@ -14,7 +15,9 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const fallback = <Spin size="large" style={{ display: 'block', margin: '80px auto' }} />;
 
 export default function App() {
+  const { algorithm } = useThemeContext();
   return (
+    <ConfigProvider theme={{ algorithm }}>
     <Routes>
       <Route path="/login"    element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
@@ -28,5 +31,6 @@ export default function App() {
         </Route>
       </Route>
     </Routes>
+    </ConfigProvider>
   );
 }

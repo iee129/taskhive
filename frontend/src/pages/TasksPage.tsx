@@ -7,6 +7,8 @@ import type { TaskResponse, TaskRequest, TaskStatus, TaskPriority } from '../typ
 import FilterBar from '../components/FilterBar';
 import CommentList from '../components/CommentList';
 import AiTaskInput from '../components/AiTaskInput';
+import ErrorBoundary from '../components/ErrorBoundary';
+import SkeletonTable from '../components/SkeletonTable';
 import { useTasks, type TaskFilter } from '../hooks/useTasks';
 import { useCreateTask, useUpdateTask, useDeleteTask } from '../hooks/useMutateTask';
 
@@ -119,7 +121,7 @@ export default function TasksPage() {
   ];
 
   return (
-    <>
+    <ErrorBoundary>
       {contextHolder}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h2 style={{ margin: 0 }}>태스크 목록</h2>
@@ -139,7 +141,7 @@ export default function TasksPage() {
         onClear={() => setFilter({})}
       />
 
-      <Table rowKey="id" columns={columns} dataSource={tasks} loading={isLoading} />
+      {isLoading ? <SkeletonTable rows={5} /> : <Table rowKey="id" columns={columns} dataSource={tasks} />}
 
       <Modal
         title={editingTask ? '태스크 수정' : '새 태스크'}
@@ -191,6 +193,6 @@ export default function TasksPage() {
       </Drawer>
 
       <AiTaskInput open={aiOpen} onClose={() => setAiOpen(false)} onCreated={() => {}} />
-    </>
+    </ErrorBoundary>
   );
 }
