@@ -8,7 +8,8 @@
 ## [미출시]
 
 ### 추가 예정
-- Phase 6: 페이지네이션 · 칸반 보드 · 댓글 · AI 자연어 태스크 생성 · 일간 다이제스트
+- Phase 6: 페이지네이션 · 칸반 보드 · 댓글 · **Audit Log (AOP)** · **통계 대시보드** · AI 자연어 태스크 생성 · 일간 다이제스트
+- Phase 6.5: **WebSocket STOMP 실시간 동기화** (칸반 보드 카드 즉시 반영)
 - Phase 7: Testcontainers · JaCoCo 80% · Playwright E2E
 - Phase 8: TanStack Query · Redis 캐싱 · N+1 제거
 - Phase 9: 다크모드 · 반응형 · Error Boundary

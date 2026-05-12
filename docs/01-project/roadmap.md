@@ -172,23 +172,27 @@ ALTER TABLE tasks
 
 ## Phase 6 — 기능 확장 🚧 예정
 
-> 페이지네이션 · 검색/필터 · 우선순위 · 댓글 · 칸반 보드
+> 페이지네이션 · 검색/필터 · 우선순위 · 댓글 · 칸반 보드 · **Audit Log** · **통계 대시보드** · **AI 연동**
 
 **선행 조건**: Phase 5 완료
 
 ### 작업 순서
 
-1. `Task` 엔티티에 `priority`, `assignee_id` 필드 추가
+1. `Task` 엔티티에 `priority` 필드 추가
 2. `TaskController` — 페이지네이션·필터·검색 파라미터 지원
 3. `TaskRepository` — JPA Specification 또는 QueryDSL 동적 쿼리
 4. `Comment` 엔티티·Repository·Controller 구현
-5. 프론트엔드 — 검색창 + 상태/우선순위 필터 드롭다운
-6. 프론트엔드 — 칸반 보드 컴포넌트 (`@hello-pangea/dnd`)
-7. 프론트엔드 — 댓글 섹션 (태스크 상세 사이드 패널)
-8. Ollama 로컬 AI 서비스 연동 — `application.yml`에 `ollama.base-url` 설정
-9. `AiService` — Spring `RestClient`로 Ollama API 호출, JSON 구조화 응답 파싱
-10. `AiController` — `POST /api/ai/parse-task`, `GET /api/ai/digest` 엔드포인트
-11. 프론트엔드 — AI 입력 모달 (`AiTaskInput.tsx`) + 대시보드 AI 위젯 (`AiDigestWidget.tsx`)
+5. **`TaskActivity` 엔티티 + `ActivityRepository` 구현**
+6. **`ActivityAspect` — `@AfterReturning` AOP로 Task 변경 이력 자동 기록**
+7. **`StatsService` + `GET /api/stats/summary` 엔드포인트 구현**
+8. 프론트엔드 — 검색창 + 상태/우선순위 필터 드롭다운
+9. 프론트엔드 — 칸반 보드 컴포넌트 (`@hello-pangea/dnd`)
+10. 프론트엔드 — 댓글 섹션 (태스크 상세 사이드 패널)
+11. **프론트엔드 — 통계 카드 위젯 (`StatsWidget.tsx`) + 활동 이력 패널 (`ActivityFeed.tsx`)**
+12. Ollama 로컬 AI 서비스 연동 — `application.yml`에 `ollama.base-url` 설정
+13. `AiService` — Spring `RestClient`로 Ollama API 호출, JSON 구조화 응답 파싱
+14. `AiController` — `POST /api/ai/parse-task`, `GET /api/ai/digest` 엔드포인트
+15. 프론트엔드 — AI 입력 모달 (`AiTaskInput.tsx`) + 대시보드 AI 위젯 (`AiDigestWidget.tsx`)
 
 ### 구현 명세
 
@@ -262,6 +266,50 @@ ollama:
 | POST | `/api/ai/parse-task` | `{"text": "..."}` | `{title, description, dueDate, priority}` |
 | GET | `/api/ai/digest` | — (JWT 인증) | `{"summary": "..."}` |
 
+**Audit Log (활동 이력)**
+```sql
+CREATE TABLE task_activities (
+  id           BIGSERIAL PRIMARY KEY,
+  task_id      BIGINT NOT NULL REFERENCES tasks(id),
+  user_id      BIGINT NOT NULL REFERENCES users(id),
+  action       VARCHAR(20) NOT NULL,  -- CREATED / UPDATED / DELETED / STATUS_CHANGED
+  field_name   VARCHAR(50),           -- 변경된 필드명 (status, title 등)
+  before_value TEXT,
+  after_value  TEXT,
+  created_at   TIMESTAMP NOT NULL
+);
+```
+
+```java
+// AOP 적용 예시
+@AfterReturning(pointcut = "execution(* com.taskhive.service.TaskService.updateTask(..))",
+                returning = "result")
+public void logTaskUpdate(JoinPoint jp, TaskResponse result) {
+    // SecurityContextHolder에서 현재 사용자 추출 후 task_activities 기록
+}
+```
+
+**통계 API**
+```
+GET /api/stats/summary
+```
+```json
+{
+  "totalTasks": 42,
+  "completedTasks": 18,
+  "overdueTasks": 5,
+  "completionRate": 42.8,
+  "createdThisWeek": 7
+}
+```
+
+**신규 프론트엔드 컴포넌트 (추가)**
+```
+frontend/src/components/
+  StatsWidget.tsx      # 완료율·기한초과 수치 카드 (대시보드 상단)
+  ActivityFeed.tsx     # 태스크 변경 이력 타임라인 (사이드 패널)
+```
+
 ### 완료 기준 (AC)
 
 - [ ] 10개 초과 태스크 존재 시 페이지네이션 동작, `totalPages` > 1
@@ -272,6 +320,64 @@ ollama:
 - [ ] `POST /api/ai/parse-task` — "다음 주 금요일까지 API 문서 작성" 입력 시 `{title, dueDate, priority}` JSON 반환
 - [ ] 대시보드 AI 위젯에 현재 태스크 기반 한국어 요약 표시
 - [ ] Ollama 미응답 시 30초 타임아웃 후 503 응답 + 프론트엔드 "AI 서비스 일시 불가" 안내
+- [ ] Task 상태 변경 시 `task_activities`에 `before_value`, `after_value` 자동 기록
+- [ ] `ActivityFeed`에서 변경 이력 시간순 표시 확인
+- [ ] `GET /api/stats/summary` — `completionRate`, `overdueTasks` 정확도 검증
+
+---
+
+## Phase 6.5 — 실시간 동기화 (WebSocket) 🚧 예정
+
+> 칸반 보드 + WebSocket STOMP — 다른 사용자의 변경이 즉시 반영
+
+**선행 조건**: Phase 6 완료 (칸반 보드 구현 후 적용)
+
+### 작업 순서
+
+1. `pom.xml` — `spring-boot-starter-websocket` 의존성 추가
+2. `WebSocketConfig` — STOMP 엔드포인트(`/ws`) + 메시지 브로커 설정
+3. `TaskEventPublisher` — Task 변경 시 `/topic/projects/{projectId}` 채널로 이벤트 발행
+4. `TaskController` — 기존 REST 응답 후 WebSocket 이벤트도 함께 발행
+5. 프론트엔드 — `@stomp/stompjs` 클라이언트 설정
+6. `useBoardSync.ts` — 프로젝트 구독 훅, 수신 이벤트 → 카드 상태 즉시 업데이트
+7. 칸반 보드 — WebSocket 수신 시 드래그 없이 카드 위치 자동 이동
+
+### 구현 명세
+
+**WebSocket 메시지 형식**
+```json
+{
+  "type": "TASK_UPDATED",
+  "taskId": 5,
+  "projectId": 1,
+  "updatedBy": "user@example.com",
+  "payload": { "status": "IN_PROGRESS" }
+}
+```
+
+**구독 채널**
+```
+/topic/projects/{projectId}   # 프로젝트 단위 구독
+```
+
+**신규 파일**
+```
+auth/src/main/java/com/taskhive/
+  websocket/
+    WebSocketConfig.java        # @EnableWebSocketMessageBroker
+    TaskEventPublisher.java     # SimpMessagingTemplate 래퍼
+
+frontend/src/
+  hooks/
+    useBoardSync.ts             # STOMP 구독 + 상태 동기화
+```
+
+### 완료 기준 (AC)
+
+- [ ] 브라우저 탭 2개로 같은 프로젝트 접속 후 한쪽에서 카드 이동 → 다른 탭 자동 반영 (새로고침 없음)
+- [ ] WebSocket 연결 끊김 시 자동 재연결 (STOMP `reconnectDelay`)
+- [ ] JWT 인증 사용자만 `/ws` 핸드셰이크 가능 (`ChannelInterceptor` 토큰 검증)
+- [ ] 10개 동시 접속 시 메시지 유실 없음 (로컬 부하 테스트)
 
 ---
 
