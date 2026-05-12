@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 @Slf4j
@@ -28,13 +29,18 @@ public class AiService {
     private String ollamaModel;
 
     public TaskRequest generateTask(AiTaskRequest request) {
+        String today = LocalDate.now().toString();
         String prompt = """
                 You are a task management assistant. Extract structured task information from the user's description.
+                Today's date is %s.
                 Respond ONLY with valid JSON in this exact format:
-                {"title": "...", "description": "...", "priority": "LOW|MEDIUM|HIGH"}
-                
+                {"title": "...", "description": "...", "priority": "LOW|MEDIUM|HIGH", "dueDate": "YYYY-MM-DD or null"}
+
+                For dueDate: parse natural language date hints (e.g. "이번 주 금요일", "내일", "다음 주", "tomorrow", "next week", "this Friday") relative to today's date.
+                If no date is mentioned, set dueDate to null.
+
                 User description: %s
-                """.formatted(request.getDescription());
+                """.formatted(today, request.getDescription());
 
         try {
             Map<String, Object> body = Map.of(
@@ -55,6 +61,16 @@ public class AiService {
             task.setDescription(parsed.path("description").asText(request.getDescription()));
             task.setPriority(parsePriority(parsed.path("priority").asText("MEDIUM")));
             task.setProjectId(request.getProjectId());
+
+            String dueDateStr = parsed.path("dueDate").asText(null);
+            if (dueDateStr != null && !dueDateStr.isBlank() && !dueDateStr.equalsIgnoreCase("null")) {
+                try {
+                    task.setDueDate(LocalDate.parse(dueDateStr));
+                } catch (Exception ex) {
+                    log.warn("dueDate 파싱 실패, null 유지: {}", dueDateStr);
+                }
+            }
+
             return task;
         } catch (Exception e) {
             log.warn("Ollama 호출 실패, 기본값 반환: {}", e.getMessage());

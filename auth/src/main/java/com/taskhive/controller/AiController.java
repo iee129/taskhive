@@ -8,6 +8,7 @@ import com.taskhive.service.TaskService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -24,8 +25,9 @@ public class AiController {
     }
 
     @PostMapping("/create-task")
-    public ResponseEntity<TaskResponse> createTaskFromAi(@Valid @RequestBody AiTaskRequest request) {
+    public ResponseEntity<TaskResponse> createTaskFromAi(@Valid @RequestBody AiTaskRequest request,
+                                                          Authentication auth) {
         TaskRequest taskRequest = aiService.generateTask(request);
-        return ResponseEntity.ok(taskService.createTask(taskRequest));
+        return ResponseEntity.ok(taskService.createTask(taskRequest, auth.getName()));
     }
 }
