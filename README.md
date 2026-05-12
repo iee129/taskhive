@@ -52,9 +52,27 @@ docker compose up
 - **댓글** — 태스크별 댓글 추가·삭제 (작성자 본인만 삭제)
 - **통계** — 완료율, 상태·우선순위별 집계, 전체 활동 피드
 - **사용자 검색** — 이메일 자동완성 (멤버 초대 시)
-- **AI 태스크 제안** — Ollama 기반 태스크 제목·설명·우선순위 자동 생성
+- **AI 태스크 제안** — BYO-LLM (Ollama/Groq/None 런타임 선택), 로컬 퍼스트
 - **실시간 알림** — WebSocket (활동 이벤트)
 - **에러 모니터링** — Sentry 통합
+
+## TaskHive vs 경쟁 제품
+
+| 기능 | **TaskHive** | Plane.so | Vikunja | Focalboard |
+|------|-------------|----------|---------|------------|
+| 오픈소스 셀프호스팅 | ✅ Docker Compose 1줄 | ✅ 복잡한 설정 | ✅ | ✅ |
+| AI 태스크 자동 생성 | ✅ BYO-LLM | ✅ 클라우드 전용 | ❌ | ❌ |
+| 로컬 LLM (데이터 미전송) | ✅ Ollama | ❌ | ❌ | ❌ |
+| 클라우드 LLM 선택 | ✅ Groq / Ollama | ✅ OpenAI 고정 | ❌ | ❌ |
+| 상태 변경 이력 추적 | ✅ task_status_history | ✅ | ❌ | ❌ |
+| JWT + Refresh Token | ✅ HttpOnly Cookie | ✅ | ✅ | ❌ |
+| WebSocket 실시간 알림 | ✅ | ✅ | ❌ | ❌ |
+| 무료 클라우드 데모 | ✅ Render + Vercel | 별도 신청 | ✅ | ❌ |
+
+**TaskHive 고유 강점 3가지**:
+1. **BYO-LLM AI**: 환경변수 하나(`AI_PROVIDER=ollama|groq|none`)로 LLM 프로바이더를 런타임에 교체 — 민감한 데이터를 클라우드에 보내지 않고도 AI 기능 사용 가능
+2. **콜드스타트 UX**: 무료 Render 호스팅의 슬립 문제를 WakingUp 컴포넌트로 해결 — 로딩 화면과 경과 시간 표시로 사용자 이탈 방지
+3. **Docker Compose 1줄 시작**: `docker compose up` 한 번으로 Postgres + 백엔드 + 프론트엔드 + 데모 데이터까지 자동 구성
 
 ## 프로젝트 구조
 

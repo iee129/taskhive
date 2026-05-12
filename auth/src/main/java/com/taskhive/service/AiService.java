@@ -5,30 +5,26 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.taskhive.dto.AiTaskRequest;
 import com.taskhive.dto.TaskRequest;
 import com.taskhive.model.Task;
+import com.taskhive.service.ai.AiProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
-import java.util.Map;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AiService {
 
-    private final RestTemplate restTemplate;
+    private final AiProvider aiProvider;
     private final ObjectMapper objectMapper;
 
-    @Value("${taskhive.ollama.url:http://localhost:11434}")
-    private String ollamaUrl;
-
-    @Value("${taskhive.ollama.model:llama3.2}")
-    private String ollamaModel;
-
     public TaskRequest generateTask(AiTaskRequest request) {
+        if (!aiProvider.isAvailable()) {
+            return fallback(request);
+        }
+
         String today = LocalDate.now().toString();
         String prompt = """
                 You are a task management assistant. Extract structured task information from the user's description.
@@ -43,18 +39,12 @@ public class AiService {
                 """.formatted(today, request.getDescription());
 
         try {
-            Map<String, Object> body = Map.of(
-                    "model", ollamaModel,
-                    "prompt", prompt,
-                    "stream", false
-            );
-            String raw = restTemplate.postForObject(ollamaUrl + "/api/generate", body, String.class);
-            JsonNode root = objectMapper.readTree(raw);
-            String responseText = root.path("response").asText();
+            String responseText = aiProvider.generate(prompt);
+            if (responseText == null || responseText.isBlank()) {
+                return fallback(request);
+            }
 
-            int start = responseText.indexOf('{');
-            int end = responseText.lastIndexOf('}') + 1;
-            JsonNode parsed = objectMapper.readTree(responseText.substring(start, end));
+            JsonNode parsed = objectMapper.readTree(responseText);
 
             TaskRequest task = new TaskRequest();
             task.setTitle(parsed.path("title").asText("AI 생성 태스크"));
@@ -73,16 +63,20 @@ public class AiService {
 
             return task;
         } catch (Exception e) {
-            log.warn("Ollama 호출 실패, 기본값 반환: {}", e.getMessage());
-            TaskRequest fallback = new TaskRequest();
-            fallback.setTitle(request.getDescription().length() > 50
-                    ? request.getDescription().substring(0, 50) + "..."
-                    : request.getDescription());
-            fallback.setDescription(request.getDescription());
-            fallback.setPriority(Task.Priority.MEDIUM);
-            fallback.setProjectId(request.getProjectId());
-            return fallback;
+            log.warn("AI 응답 파싱 실패, 기본값 반환: {}", e.getMessage());
+            return fallback(request);
         }
+    }
+
+    private TaskRequest fallback(AiTaskRequest request) {
+        TaskRequest task = new TaskRequest();
+        task.setTitle(request.getDescription().length() > 50
+                ? request.getDescription().substring(0, 50) + "..."
+                : request.getDescription());
+        task.setDescription(request.getDescription());
+        task.setPriority(Task.Priority.MEDIUM);
+        task.setProjectId(request.getProjectId());
+        return task;
     }
 
     private Task.Priority parsePriority(String value) {

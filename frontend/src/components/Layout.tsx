@@ -4,6 +4,7 @@ import {
   CheckSquareOutlined, UserOutlined, LogoutOutlined,
   AppstoreOutlined, BarChartOutlined, ProjectOutlined,
 } from '@ant-design/icons';
+import AiProviderBanner from './AiProviderBanner';
 
 const { Sider, Content } = AntLayout;
 
@@ -39,6 +40,7 @@ export default function Layout() {
         />
       </Sider>
       <AntLayout>
+        <AiProviderBanner />
         <Content style={{ padding: 24, background: '#fff' }}>
           <Outlet />
         </Content>
