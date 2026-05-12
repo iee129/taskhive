@@ -20,6 +20,7 @@ public class TaskService {
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
     private final ProjectMemberRepository memberRepository;
+    private final TaskStatusHistoryRepository statusHistoryRepository;
 
     public List<TaskResponse> getAllTasks() {
         return taskRepository.findAllByDeletedAtIsNull().stream()
@@ -74,7 +75,16 @@ public class TaskService {
         checkProjectMembership(task, requesterEmail);
         task.setTitle(request.getTitle());
         task.setDescription(request.getDescription());
-        if (request.getStatus() != null) task.setStatus(request.getStatus());
+        if (request.getStatus() != null && request.getStatus() != task.getStatus()) {
+            statusHistoryRepository.save(TaskStatusHistory.builder()
+                    .task(task)
+                    .fromStatus(task.getStatus().name())
+                    .toStatus(request.getStatus().name())
+                    .changedBy(requesterEmail)
+                    .changedAt(LocalDateTime.now())
+                    .build());
+            task.setStatus(request.getStatus());
+        }
         if (request.getPriority() != null) task.setPriority(request.getPriority());
         task.setDueDate(request.getDueDate());
         return TaskResponse.from(taskRepository.save(task));
