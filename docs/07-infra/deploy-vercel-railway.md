@@ -60,7 +60,7 @@
 ### 1-5. 배포 확인
 
 ```bash
-curl https://<your-app>.up.railway.app/actuator/health
+curl https://<backend>.up.railway.app/actuator/health
 # {"status":"UP"} 응답 확인
 ```
 
