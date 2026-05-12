@@ -1,83 +1,120 @@
 # 상태 관리
 
-## 전략
+## 전략 (Phase 8 기준)
 
-MVP 단계에서는 **React Context API + useReducer**로 전역 상태 관리.  
-복잡도 증가 시 **Zustand** 도입 검토 (경량, boilerplate 최소).
+서버 상태는 **TanStack Query**, UI 상태는 컴포넌트 로컬 `useState`로 분리.
 
-## 인증 상태 (authStore)
+| 상태 종류 | 솔루션 | 예시 |
+|----------|--------|------|
+| 서버 데이터 (태스크, 프로젝트) | TanStack Query (`useQuery`) | `useTasks`, `useProjects` |
+| 뮤테이션 (생성·수정·삭제) | TanStack Query (`useMutation`) | `useCreateTask`, `useDeleteTask` |
+| 낙관적 업데이트 | `onMutate` + rollback | `useOptimisticTaskStatus` |
+| 인증 토큰 | `localStorage` + Axios 인터셉터 | `client.ts` |
+| UI 상태 (모달, 폼) | 컴포넌트 `useState` | `modalOpen`, `editingTask` |
+
+---
+
+## QueryClient 설정
 
 ```typescript
-// store/authStore.ts
-interface AuthState {
-  token: string | null;
-  email: string | null;
-  name: string | null;
-  isAuthenticated: boolean;
-}
-
-const AuthContext = createContext<{
-  state: AuthState;
-  login: (response: AuthResponse) => void;
-  logout: () => void;
-} | null>(null);
-
-function authReducer(state: AuthState, action: AuthAction): AuthState {
-  switch (action.type) {
-    case 'LOGIN':
-      localStorage.setItem('token', action.payload.token);
-      return { ...action.payload, isAuthenticated: true };
-    case 'LOGOUT':
-      localStorage.removeItem('token');
-      return { token: null, email: null, name: null, isAuthenticated: false };
-    default:
-      return state;
-  }
-}
+// main.tsx
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,   // 30초간 fresh — 재방문 시 재요청 없음
+      gcTime:    300_000,  // 5분 후 캐시 제거
+      retry: 1,
+    },
+  },
+});
 ```
 
-## 태스크 상태 (taskStore)
+`QueryClientProvider`는 `BrowserRouter` 바깥에 위치해 라우트 전환 시에도 캐시 유지.
 
-서버 상태는 커스텀 훅으로 관리 — 전역 스토어 불필요:
+---
+
+## 서버 상태 훅
+
+### useTasks
 
 ```typescript
 // hooks/useTasks.ts
-function useTasks() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchTasks = async () => {
-    setLoading(true);
-    try {
-      const data = await taskApi.getAll();
-      setTasks(data);
-    } catch (e) {
-      setError('태스크를 불러오지 못했습니다');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { fetchTasks(); }, []);
-
-  return { tasks, loading, error, refetch: fetchTasks };
+export function useTasks(filter?: TaskFilter) {
+  return useQuery({
+    queryKey: ['tasks', filter],
+    queryFn: () => getTasks(filter),
+    staleTime: 30_000,
+  });
 }
 ```
 
-## 상태 범위 정리
+`queryKey`에 `filter`를 포함해 필터 변경 시 자동으로 새 쿼리 실행.
 
-| 상태 | 범위 | 솔루션 |
-|------|------|--------|
-| 인증 토큰·사용자 정보 | 전역 | AuthContext |
-| 태스크 목록 | 페이지 | `useTasks` 커스텀 훅 |
-| 폼 입력값 | 컴포넌트 | `useState` |
-| 모달 열림 여부 | 컴포넌트 | `useState` |
-| API 로딩·에러 | 훅 | `useTasks` 내부 |
+### useMutateTask
 
-## Zustand 전환 기준
+```typescript
+// hooks/useMutateTask.ts
+export function useCreateTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: TaskRequest) => createTask(data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks'] }),
+  });
+}
 
-Context API로 처리하기 어려운 시점:
-- 3개 이상의 독립 전역 상태가 서로 구독
-- 상태 업데이트로 인한 불필요한 리렌더링이 성능에 영향
-- 개발자 도구(devtools)가 필요한 복잡한 상태 디버깅
+export function useOptimisticTaskStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }) => updateTask(id, data),
+    onMutate: async ({ id, data }) => {
+      await qc.cancelQueries({ queryKey: ['tasks'] });
+      const previous = qc.getQueriesData({ queryKey: ['tasks'] });
+      // 즉시 UI 반영
+      qc.setQueriesData({ queryKey: ['tasks'] }, (old) =>
+        old?.map((t) => t.id === id ? { ...t, status: data.status } : t)
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      // 실패 시 롤백
+      context?.previous.forEach(([key, data]) => qc.setQueryData(key, data));
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['tasks'] }),
+  });
+}
+```
+
+---
+
+## 캐시 무효화 전략
+
+| 이벤트 | 무효화 대상 |
+|--------|------------|
+| 태스크 생성·수정·삭제 | `['tasks']` 전체 |
+| 칸반 드래그 완료 | `['tasks']` (onSettled) |
+| 드래그 실패 | rollback → `['tasks']` 복원 |
+
+---
+
+## 컴포넌트별 상태 패턴
+
+```
+TasksPage
+├── filter (useState)          — 검색·필터 조건
+├── modalOpen (useState)       — 생성/수정 모달
+├── editingTask (useState)     — 현재 수정 중인 태스크
+├── drawerTask (useState)      — 상세 Drawer
+└── useTasks(filter)           — TanStack Query 서버 상태
+
+KanbanPage
+├── useTasks()                 — TanStack Query
+└── useOptimisticTaskStatus()  — 낙관적 업데이트
+```
+
+---
+
+## staleTime 가이드
+
+- `30_000` (30초) — 태스크 목록: 자주 변경되지만 즉각성 불필요
+- `60_000` (60초) — 프로젝트 목록: 드물게 변경
+- `0` — 실시간 필요 데이터 (현재 미사용)

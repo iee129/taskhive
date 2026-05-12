@@ -454,11 +454,11 @@ frontend/
 
 ---
 
-## Phase 8 — 성능 최적화 🚧 예정
+## Phase 8 — 성능 최적화 ✅ 완료
 
 > TanStack Query · Lazy Loading · N+1 제거 · Redis 캐싱 · Lighthouse CI
 
-**브랜치**: `performance` | **선행 조건**: Phase 7 완료
+**브랜치**: `performance` | **완료**: 2026-05-12
 
 ### 작업 순서
 

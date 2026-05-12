@@ -9,10 +9,44 @@
 
 ### 추가 예정
 - Phase 6.5: **WebSocket STOMP 실시간 동기화** (칸반 보드 카드 즉시 반영)
-- Phase 8: TanStack Query · Redis 캐싱 · N+1 제거
 - Phase 9: 다크모드 · 반응형 · Error Boundary
 - Phase 10: Docker Compose 통합 (PostgreSQL + Redis + Ollama)
 - Phase 11: GitHub Actions CI/CD · GHCR 이미지 푸시
+
+---
+
+## [0.9.0] — 2026-05-12
+
+### 추가
+- `@tanstack/react-query` 도입 — `QueryClientProvider`, staleTime 30s, gcTime 5m
+- `useTasks` / `useMutateTask` / `useProjects` 커스텀 훅 — useQuery + useMutation 기반
+- `useOptimisticTaskStatus` — 칸반 드래그 시 즉시 UI 반영, 실패 시 자동 롤백
+- `CacheConfig` — `@EnableCaching`, `spring.cache.type=simple` 기본 / `redis` 환경변수 전환
+- `spring-boot-starter-cache` + `spring-boot-starter-data-redis` 의존성 추가
+- `Task` 엔티티 — `status`, `priority`, `deleted_at`, `assignee_id` DB 인덱스 추가
+- `TaskRepository.findAllWithAssociations()` — LEFT JOIN FETCH로 N+1 쿼리 제거
+- `src/hooks/` 디렉터리 + `useTasks.ts`, `useMutateTask.ts`, `useProjects.ts`
+- `src/types/project.ts` — `ProjectResponse` 타입 정의
+- `frontend/.lighthouserc.json` — Lighthouse CI 임계값 (Performance/Accessibility ≥ 90)
+- `.github/workflows/lighthouse.yml` — PR 트리거 Lighthouse CI (workflow scope 필요)
+
+### 변경
+- `App.tsx` — `BrowserRouter` 중복 제거, `lazy()` + `Suspense` 코드 스플리팅 (4개 페이지)
+- `main.tsx` — `QueryClientProvider` + `BrowserRouter` 통합
+- `TasksPage.tsx` — `useQuery` + `useMutation` 전환 (fetchTasks + useEffect 제거)
+- `KanbanPage.tsx` — `useTasks` + `useOptimisticTaskStatus` 전환
+- `FilterBar.tsx` — `React.memo` + `useCallback` 적용
+- `vite.config.ts` — `manualChunks` 추가 (vendor-react, vendor-antd, vendor-query, vendor-dnd)
+- `ProjectService.getMyProjects()` — `@Cacheable("projects")` 적용
+- `ProjectService.createProject/updateProject/deleteProject` — `@CacheEvict` 추가
+- `TaskService.getAllTasks()` — `findAllWithAssociations()` 사용
+- `application.yml` — `spring.cache.*`, `spring.data.redis.*` 설정 추가
+
+### 성능 개선 수치
+- TasksPage 초기 청크: **477KB → 8KB** (gzip 149KB → 3KB)
+- KanbanPage 청크: **100KB → 2.75KB**
+- 태스크 목록 DB 쿼리: **N+1 → 1회** (JOIN FETCH)
+- 프로젝트 목록 재방문: **API 재호출 → 캐시 히트** (staleTime 30s)
 
 ---
 
