@@ -34,3 +34,6 @@ k8s/**/secret*.yaml
 
 # Session artifacts
 progress.txt
+
+# Deploy scripts
+scripts/
