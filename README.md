@@ -1,6 +1,8 @@
 # TaskHive 🐝
 
 [![CI](https://github.com/iee129/taskhive/actions/workflows/ci.yml/badge.svg)](https://github.com/iee129/taskhive/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/iee129/taskhive)](https://github.com/iee129/taskhive/releases)
 
 > 벌집처럼 유기적으로 연결되는 팀 작업·프로젝트 통합 관리 플랫폼
 
@@ -30,6 +32,31 @@ docker compose up
 - 데모 계정이 자동 생성됩니다 (`test@example.com` / `Test1234!`)
 
 > **사전 요구 사항**: Docker Desktop 설치 필요. 첫 빌드는 약 5–10분 소요됩니다.
+
+## 로컬-퍼스트 AI (BYO-LLM)
+
+TaskHive의 AI 기능은 **당신의 LLM을 직접 가져올 수 있습니다 (Bring Your Own LLM)**. 환경변수 하나로 프로바이더를 교체할 수 있으며, **셀프호스팅 시 기본값은 Ollama — 모든 AI 요청이 내 서버에서만 처리됩니다.**
+
+```bash
+# 로컬 Ollama (기본값 — 데이터 외부 전송 없음)
+AI_PROVIDER=ollama
+OLLAMA_URL=http://localhost:11434
+
+# 클라우드 Groq (무료 API 키 — 고속 추론)
+AI_PROVIDER=groq
+GROQ_API_KEY=gsk_...
+
+# AI 비활성화
+AI_PROVIDER=none
+```
+
+프론트엔드는 `GET /api/ai/capabilities`를 통해 AI 활성 상태와 프로바이더 종류를 자동 감지합니다. 클라우드 LLM이 활성화된 경우 UI에 경고 배너가 표시됩니다.
+
+> **공개 데모는 Groq(클라우드 LLM)를 사용합니다.** 셀프호스팅하면 데이터가 내 서버를 떠나지 않습니다.
+
+자세한 내용은 [docs/AI.md](docs/AI.md)를 참고하세요.
+
+---
 
 ## 기술 스택
 
@@ -226,3 +253,17 @@ WHERE deleted_at IS NULL
 - [x] Phase 13 — 칸반 보드 (드래그&드롭)
 - [x] Phase 14 — 프로젝트 멤버 초대 & 공유 (OWNER/MEMBER 역할)
 - [x] Phase 15 — 웹 테스트 환경 (Swagger UI + JWT, Seed Data API, Playwright E2E + GitHub Actions)
+
+---
+
+## 기여하기
+
+버그 신고, 기능 제안, PR 모두 환영합니다!
+
+- [CONTRIBUTING.md](CONTRIBUTING.md) — 로컬 개발 환경 셋업 + PR 절차
+- [이슈 트래커](https://github.com/iee129/taskhive/issues) — 버그 신고 및 기능 제안
+- [행동 강령](CODE_OF_CONDUCT.md) — 커뮤니티 가이드라인
+
+## 라이선스
+
+[MIT](LICENSE) © 2026 iee129
