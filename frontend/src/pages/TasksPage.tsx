@@ -8,6 +8,9 @@ import type { TaskResponse, TaskRequest, TaskStatus, TaskPriority } from '../typ
 import FilterBar from '../components/FilterBar';
 import CommentList from '../components/CommentList';
 import AiTaskInput from '../components/AiTaskInput';
+import BrainDumpModal from '../components/BrainDumpModal';
+
+const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080';
 
 const STATUS_LABEL: Record<TaskStatus, string> = {
   TODO: '할 일', IN_PROGRESS: '진행 중', DONE: '완료',
@@ -29,6 +32,8 @@ export default function TasksPage() {
   const [editingTask, setEditingTask] = useState<TaskResponse | null>(null);
   const [drawerTask, setDrawerTask] = useState<TaskResponse | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
+  const [brainDumpOpen, setBrainDumpOpen] = useState(false);
+  const [aiEnabled, setAiEnabled] = useState(false);
   const [form] = Form.useForm();
   const [messageApi, contextHolder] = message.useMessage();
 
@@ -52,6 +57,13 @@ export default function TasksPage() {
   };
 
   useEffect(() => { fetchTasks(); }, [filterStatus, filterPriority, filterSearch]);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/ai/capabilities`)
+      .then((r) => r.json())
+      .then((data) => setAiEnabled(data.enabled))
+      .catch(() => setAiEnabled(false));
+  }, []);
 
   const openCreate = () => {
     setEditingTask(null);
@@ -143,6 +155,9 @@ export default function TasksPage() {
         <h2 style={{ margin: 0 }}>태스크 목록</h2>
         <Space>
           <Button icon={<RobotOutlined />} onClick={() => setAiOpen(true)}>AI 생성</Button>
+          {aiEnabled && (
+            <Button icon={<RobotOutlined />} onClick={() => setBrainDumpOpen(true)}>브레인덤프</Button>
+          )}
           <Button type="primary" onClick={openCreate}>새 태스크</Button>
         </Space>
       </div>
@@ -209,6 +224,7 @@ export default function TasksPage() {
       </Drawer>
 
       <AiTaskInput open={aiOpen} onClose={() => setAiOpen(false)} onCreated={fetchTasks} />
+      <BrainDumpModal open={brainDumpOpen} onClose={() => setBrainDumpOpen(false)} onSuccess={fetchTasks} />
     </>
   );
 }

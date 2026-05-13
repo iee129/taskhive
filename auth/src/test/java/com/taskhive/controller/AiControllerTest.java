@@ -79,10 +79,50 @@ class AiControllerTest {
 
     @Test
     void parseFilter_unavailable_returns503() throws Exception {
+        String token = obtainToken("parsefilter_test@example.com");
         mockMvc.perform(post("/api/ai/parse-filter")
+                        .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of("query", "이번 주 마감 HIGH 내 태스크"))))
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.code").value("AI_UNAVAILABLE"));
+    }
+
+    @Test
+    void breakdown_unavailable_returns503() throws Exception {
+        String token = obtainToken("breakdown_test@example.com");
+        mockMvc.perform(post("/api/ai/breakdown")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("text", "로그인 구현, 회원가입 구현, 이메일 인증 추가"))))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("AI_UNAVAILABLE"));
+    }
+
+    private String obtainToken(String email) throws Exception {
+        RegisterRequest reg = new RegisterRequest();
+        reg.setName("테스터");
+        reg.setEmail(email);
+        reg.setPassword("password123");
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(reg)))
+                .andExpect(status().isOk());
+
+        userRepository.findByEmail(email).ifPresent(u -> {
+            u.setEmailVerified(true);
+            userRepository.save(u);
+        });
+
+        AuthRequest login = new AuthRequest();
+        login.setEmail(email);
+        login.setPassword("password123");
+        MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(login)))
+                .andExpect(status().isOk())
+                .andReturn();
+        return objectMapper.readTree(loginResult.getResponse().getContentAsString())
+                .get("token").asText();
     }
 }

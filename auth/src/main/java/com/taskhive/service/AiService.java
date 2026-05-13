@@ -3,10 +3,12 @@ package com.taskhive.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.taskhive.dto.AiTaskRequest;
+import com.taskhive.dto.BrainDumpItem;
 import com.taskhive.dto.CommentRequest;
 import com.taskhive.dto.CommentResponse;
 import com.taskhive.dto.FilterParseResponse;
 import com.taskhive.dto.TaskRequest;
+import com.taskhive.dto.TaskResponse;
 import com.taskhive.exception.BusinessException;
 import com.taskhive.exception.ErrorCode;
 import com.taskhive.model.Task;
@@ -20,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -34,6 +37,7 @@ public class AiService {
     private final CommentRepository commentRepository;
     private final TaskActivityRepository taskActivityRepository;
     private final CommentService commentService;
+    private final TaskService taskService;
 
     public CommentResponse summarizeTask(Long taskId, String requesterEmail) {
         if (!aiProvider.isAvailable()) {
@@ -173,6 +177,64 @@ public class AiService {
             log.warn("AI 필터 파싱 실패, 기본값 반환: {}", e.getMessage());
             return new FilterParseResponse(null, null, null);
         }
+    }
+
+    public List<BrainDumpItem> breakdown(String text, Long projectId) {
+        if (!aiProvider.isAvailable()) {
+            throw new BusinessException(ErrorCode.AI_UNAVAILABLE);
+        }
+
+        String prompt = """
+                You are a task management assistant. Break down the following brain dump text into a list of actionable tasks.
+                Respond ONLY with a valid JSON array in this exact format:
+                [{"title": "...", "description": "...", "priority": "LOW|MEDIUM|HIGH"}, ...]
+
+                Each item must have a clear, concise title and a brief description.
+                Assign priority based on urgency and importance.
+
+                Brain dump text:
+                %s
+                """.formatted(text);
+
+        try {
+            String responseText = aiProvider.generate(prompt);
+            if (responseText == null || responseText.isBlank()) {
+                return new ArrayList<>();
+            }
+
+            JsonNode parsed = objectMapper.readTree(responseText);
+            if (!parsed.isArray()) {
+                log.warn("브레인덤프 파싱 실패: 배열이 아님");
+                return new ArrayList<>();
+            }
+
+            List<BrainDumpItem> items = new ArrayList<>();
+            for (JsonNode node : parsed) {
+                String title = node.path("title").asText("");
+                String description = node.path("description").asText("");
+                String priority = node.path("priority").asText("MEDIUM");
+                if (!title.isBlank()) {
+                    items.add(new BrainDumpItem(title, description, priority));
+                }
+            }
+            return items;
+        } catch (Exception e) {
+            log.warn("브레인덤프 파싱 실패, 빈 리스트 반환: {}", e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    public List<TaskResponse> createTasksFromBreakdown(List<BrainDumpItem> items, Long projectId, String requesterEmail) {
+        List<TaskResponse> created = new ArrayList<>();
+        for (BrainDumpItem item : items) {
+            TaskRequest taskRequest = new TaskRequest();
+            taskRequest.setTitle(item.title());
+            taskRequest.setDescription(item.description());
+            taskRequest.setPriority(parsePriority(item.priority()));
+            taskRequest.setProjectId(projectId);
+            created.add(taskService.createTask(taskRequest, requesterEmail));
+        }
+        return created;
     }
 
     private String nullableText(JsonNode node) {
