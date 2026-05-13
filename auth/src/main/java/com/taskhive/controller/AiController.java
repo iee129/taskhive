@@ -2,6 +2,7 @@ package com.taskhive.controller;
 
 import com.taskhive.dto.AiCapabilitiesResponse;
 import com.taskhive.dto.AiTaskRequest;
+import com.taskhive.dto.CommentResponse;
 import com.taskhive.dto.TaskRequest;
 import com.taskhive.dto.TaskResponse;
 import com.taskhive.service.AiService;
@@ -41,5 +42,11 @@ public class AiController {
                                                           Authentication auth) {
         TaskRequest taskRequest = aiService.generateTask(request);
         return ResponseEntity.ok(taskService.createTask(taskRequest, auth.getName()));
+    }
+
+    @PostMapping("/tasks/{taskId}/ai-summary")
+    public ResponseEntity<CommentResponse> summarizeTask(@PathVariable Long taskId,
+                                                          Authentication auth) {
+        return ResponseEntity.ok(aiService.summarizeTask(taskId, auth.getName()));
     }
 }

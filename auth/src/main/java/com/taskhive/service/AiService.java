@@ -3,14 +3,24 @@ package com.taskhive.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.taskhive.dto.AiTaskRequest;
+import com.taskhive.dto.CommentRequest;
+import com.taskhive.dto.CommentResponse;
 import com.taskhive.dto.TaskRequest;
+import com.taskhive.exception.BusinessException;
+import com.taskhive.exception.ErrorCode;
 import com.taskhive.model.Task;
+import com.taskhive.model.TaskActivity;
+import com.taskhive.repository.CommentRepository;
+import com.taskhive.repository.TaskActivityRepository;
+import com.taskhive.repository.TaskRepository;
 import com.taskhive.service.ai.AiProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -19,6 +29,68 @@ public class AiService {
 
     private final AiProvider aiProvider;
     private final ObjectMapper objectMapper;
+    private final TaskRepository taskRepository;
+    private final CommentRepository commentRepository;
+    private final TaskActivityRepository taskActivityRepository;
+    private final CommentService commentService;
+
+    public CommentResponse summarizeTask(Long taskId, String requesterEmail) {
+        if (!aiProvider.isAvailable()) {
+            throw new BusinessException(ErrorCode.AI_UNAVAILABLE);
+        }
+
+        Task task = taskRepository.findByIdAndDeletedAtIsNull(taskId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.TASK_NOT_FOUND));
+
+        List<String> commentLines = commentRepository.findByTaskIdOrderByCreatedAtAsc(taskId).stream()
+                .map(c -> "- [" + c.getAuthor().getEmail() + "] " + c.getContent())
+                .collect(Collectors.toList());
+
+        List<String> activityLines = taskActivityRepository.findByTaskIdOrderByOccurredAtDesc(taskId).stream()
+                .limit(10)
+                .map(a -> "- [" + a.getAction() + "] " + (a.getDetail() != null ? a.getDetail() : ""))
+                .collect(Collectors.toList());
+
+        String prompt = """
+                You are a task management assistant. Summarize the following task in Korean in 2-3 sentences.
+                Focus on the current state, key discussion points, and any important activities.
+
+                Task title: %s
+                Task description: %s
+                Task status: %s
+                Task priority: %s
+
+                Comments:
+                %s
+
+                Recent activities:
+                %s
+
+                Respond with a concise summary only, no extra formatting.
+                """.formatted(
+                task.getTitle(),
+                task.getDescription() != null ? task.getDescription() : "(없음)",
+                task.getStatus(),
+                task.getPriority(),
+                commentLines.isEmpty() ? "(없음)" : String.join("\n", commentLines),
+                activityLines.isEmpty() ? "(없음)" : String.join("\n", activityLines)
+        );
+
+        String summaryText;
+        try {
+            summaryText = aiProvider.generate(prompt);
+            if (summaryText == null || summaryText.isBlank()) {
+                summaryText = "AI 요약을 생성할 수 없습니다.";
+            }
+        } catch (Exception e) {
+            log.warn("AI 요약 생성 실패: {}", e.getMessage());
+            summaryText = "AI 요약을 생성할 수 없습니다.";
+        }
+
+        CommentRequest commentRequest = new CommentRequest();
+        commentRequest.setContent("[AI 요약] " + summaryText);
+        return commentService.addComment(taskId, commentRequest, requesterEmail);
+    }
 
     public TaskRequest generateTask(AiTaskRequest request) {
         if (!aiProvider.isAvailable()) {

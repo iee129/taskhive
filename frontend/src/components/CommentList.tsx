@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { List, Input, Button, Avatar, Popconfirm, Typography, Space, message } from 'antd';
-import { UserOutlined, SendOutlined, DeleteOutlined } from '@ant-design/icons';
+import { UserOutlined, SendOutlined, DeleteOutlined, RobotOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { getComments, addComment, deleteComment } from '../api/comments';
+import { summarizeTask } from '../api/ai';
 import type { CommentResponse } from '../types/task';
+
+const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080';
 
 interface CommentListProps {
   taskId: number;
@@ -15,6 +18,8 @@ export default function CommentList({ taskId, currentUserEmail }: CommentListPro
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [aiEnabled, setAiEnabled] = useState(false);
+  const [summarizing, setSummarizing] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
 
   const fetchComments = async () => {
@@ -25,6 +30,25 @@ export default function CommentList({ taskId, currentUserEmail }: CommentListPro
   };
 
   useEffect(() => { fetchComments(); }, [taskId]);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/ai/capabilities`)
+      .then((r) => r.json())
+      .then((data: { enabled: boolean }) => setAiEnabled(data.enabled))
+      .catch(() => null);
+  }, []);
+
+  const handleAiSummary = async () => {
+    setSummarizing(true);
+    try {
+      await summarizeTask(taskId);
+      fetchComments();
+    } catch {
+      messageApi.error('AI 요약 생성 실패. AI provider를 사용할 수 없습니다.');
+    } finally {
+      setSummarizing(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!content.trim()) return;
@@ -52,7 +76,19 @@ export default function CommentList({ taskId, currentUserEmail }: CommentListPro
   return (
     <div>
       {contextHolder}
-      <Typography.Title level={5} style={{ marginTop: 16 }}>댓글 ({comments.length})</Typography.Title>
+      <Space style={{ marginTop: 16, marginBottom: 4, width: '100%', justifyContent: 'space-between' }}>
+        <Typography.Title level={5} style={{ margin: 0 }}>댓글 ({comments.length})</Typography.Title>
+        {aiEnabled && (
+          <Button
+            icon={<RobotOutlined />}
+            size="small"
+            onClick={handleAiSummary}
+            loading={summarizing}
+          >
+            AI 요약 생성
+          </Button>
+        )}
+      </Space>
       <List
         loading={loading}
         dataSource={comments}
