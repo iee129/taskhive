@@ -145,6 +145,16 @@ AI_PROVIDER=none
 2. **콜드스타트 UX**: 무료 Render 호스팅의 슬립 문제를 WakingUp 컴포넌트로 해결 — 로딩 화면과 경과 시간 표시로 사용자 이탈 방지
 3. **Docker Compose 1줄 시작**: `docker compose up` 한 번으로 Postgres + 백엔드 + 프론트엔드 + 데모 데이터까지 자동 구성
 
+## 직접 배포·테스트 가이드
+
+내 GitHub 저장소를 공개 URL에 배포해 다른 개발자와 공유하거나, 모든 기능을 클릭하며 직접 검증하고 싶다면:
+
+| 가이드 | 내용 |
+|--------|------|
+| [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Neon + Render + Vercel 무료 티어로 ≈30분 안에 공개 URL 배포 — 환경변수 매트릭스·CORS 절차·GitHub Actions 자동 배포·트러블슈팅 포함 |
+| [`docs/MANUAL_TESTING_GUIDE.md`](docs/MANUAL_TESTING_GUIDE.md) | 13개 시나리오로 M1~M10 모든 기능을 클릭·관찰하며 검증 — 라벨/마크다운/다크모드/PAT/웹훅/분석 차트·Cmd+K·X-Request-Id 등 |
+| [`docs/TESTING.md`](docs/TESTING.md) | Swagger UI · Seed Data API · Playwright E2E · GitHub Actions CI 기술 가이드 |
+
 ## 프로젝트 구조
 
 ```

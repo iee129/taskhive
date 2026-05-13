@@ -1,0 +1,51 @@
+services:
+  - type: web
+    name: taskhive-backend
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./auth/Dockerfile
+    dockerContext: ./auth
+    healthCheckPath: /actuator/health
+    autoDeploy: false
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: demo
+      - key: SERVER_PORT
+        value: "8080"
+      - key: JAVA_OPTS
+        value: "-XX:+UseSerialGC -Xss512k -XX:MaxRAMPercentage=75"
+
+      # Neon Postgres 연결 (콘솔에서 직접 입력)
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+
+      # JWT (Render가 256-bit 무작위 생성)
+      - key: JWT_SECRET
+        generateValue: true
+
+      # CORS (Vercel URL 결정 후 콘솔에서 입력 — 쉼표 구분)
+      - key: CORS_ORIGINS
+        sync: false
+
+      # AI 프로바이더 (none = AI 기능 비활성. Groq 사용 시 콘솔에서 변경 + GROQ_API_KEY 추가)
+      - key: AI_PROVIDER
+        value: none
+
+      # SMTP (선택. 미설정 시 콘솔 로그로 출력 — 데모 계정은 이메일 인증 자동 우회)
+      - key: MAIL_HOST
+        sync: false
+      - key: MAIL_PORT
+        sync: false
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+
+      # Sentry (선택)
+      - key: SENTRY_DSN
+        sync: false
