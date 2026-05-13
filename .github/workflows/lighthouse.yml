@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [master]
     paths:
-      - 'frontend/**'
+      - 'apps/web/**'
 
 jobs:
   lighthouse:
@@ -17,17 +17,17 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: apps/web/package-lock.json
 
       - name: Install dependencies
-        run: cd frontend && npm ci
+        run: cd apps/web && npm ci
 
       - name: Build
-        run: cd frontend && npm run build
+        run: cd apps/web && npm run build
 
       - name: Run Lighthouse CI
         uses: treosh/lighthouse-ci-action@v12
         with:
-          configPath: './frontend/.lighthouserc.json'
+          configPath: './apps/web/.lighthouserc.json'
           uploadArtifacts: true
           temporaryPublicStorage: true

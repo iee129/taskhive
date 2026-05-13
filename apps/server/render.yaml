@@ -4,8 +4,8 @@ services:
     runtime: docker
     plan: free
     region: singapore
-    dockerfilePath: ./auth/Dockerfile
-    dockerContext: ./auth
+    dockerfilePath: ./apps/server/Dockerfile
+    dockerContext: ./apps/server
     healthCheckPath: /actuator/health
     autoDeploy: false
     envVars:

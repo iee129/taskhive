@@ -49,11 +49,11 @@ postgres://<user>:<password>@<host>.neon.tech/neondb?sslmode=require
 1. https://render.com → **Sign in with GitHub**
 2. 우상단 **New +** → **Web Service** 클릭
 3. **Connect a repository** → `iee129/taskhive` 선택 → **Connect**
-4. Render가 `auth/render.yaml`을 자동 감지하면 **Apply Blueprint** 버튼이 표시됨 → 클릭
+4. Render가 `apps/server/render.yaml`을 자동 감지하면 **Apply Blueprint** 버튼이 표시됨 → 클릭
    - 감지되지 않으면 수동 입력:
      - **Name**: `taskhive-backend`
      - **Runtime**: Docker
-     - **Dockerfile Path**: `./auth/Dockerfile`
+     - **Dockerfile Path**: `./apps/server/Dockerfile`
      - **Docker Context**: `./auth`
      - **Health Check Path**: `/actuator/health`
      - **Region**: Singapore (Neon과 동일 권장)
@@ -87,7 +87,7 @@ Render 콘솔의 **Environment** 탭에서 다음 4개를 입력:
 4. 동일 URL의 `/actuator/health` 접속 → `{"status":"UP"}` 응답이면 성공
 5. 동일 URL의 `/swagger-ui.html` 접속 → Swagger UI 로드 확인
 
-> 💡 demo 프로파일이면 `DemoSeederRunner`가 자동 실행되어 `test@example.com / Test1234!` 계정과 예시 프로젝트·태스크·라벨이 생성됩니다 (`auth/src/main/java/com/taskhive/config/DemoSeederRunner.java`).
+> 💡 demo 프로파일이면 `DemoSeederRunner`가 자동 실행되어 `test@example.com / Test1234!` 계정과 예시 프로젝트·태스크·라벨이 생성됩니다 (`apps/server/src/main/java/com/taskhive/config/DemoSeederRunner.java`).
 
 ---
 

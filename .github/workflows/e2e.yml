@@ -4,8 +4,8 @@ on:
   push:
     branches: [master]
     paths:
-      - 'frontend/**'
-      - 'auth/**'
+      - 'apps/web/**'
+      - 'apps/server/**'
   pull_request:
     branches: [master]
 
@@ -24,7 +24,7 @@ jobs:
           cache: maven
 
       - name: Build backend JAR
-        run: cd auth && mvn package -DskipTests -q
+        run: cd apps/server && mvn package -DskipTests -q
 
       - name: Start stack
         run: docker compose up -d --build
@@ -45,16 +45,16 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: apps/web/package-lock.json
 
       - name: Install dependencies
-        run: cd frontend && npm ci
+        run: cd apps/web && npm ci
 
       - name: Install Playwright Chromium
-        run: cd frontend && npx playwright install --with-deps chromium
+        run: cd apps/web && npx playwright install --with-deps chromium
 
       - name: Run E2E tests (local stack)
-        run: cd frontend && npx playwright test
+        run: cd apps/web && npx playwright test
         env:
           BASE_URL: http://localhost
 
@@ -63,7 +63,7 @@ jobs:
         if: always()
         with:
           name: playwright-report
-          path: frontend/playwright-report/
+          path: apps/web/playwright-report/
           retention-days: 7
 
       - name: Tear down stack
@@ -84,15 +84,15 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: apps/web/package-lock.json
 
       - name: Install dependencies
-        run: cd frontend && npm ci
+        run: cd apps/web && npm ci
 
       - name: Install Playwright Chromium
-        run: cd frontend && npx playwright install --with-deps chromium
+        run: cd apps/web && npx playwright install --with-deps chromium
 
       - name: Run smoke tests (live Vercel)
-        run: cd frontend && npx playwright test --grep "@smoke"
+        run: cd apps/web && npx playwright test --grep "@smoke"
         env:
           BASE_URL: ${{ secrets.E2E_BASE_URL }}

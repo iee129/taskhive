@@ -3,7 +3,7 @@ name: CI — Backend
 on:
   pull_request:
     paths:
-      - 'auth/**'
+      - 'apps/server/**'
       - '.github/workflows/ci-backend.yml'
 
 jobs:
@@ -24,13 +24,13 @@ jobs:
           cache: 'maven'
 
       - name: Build and verify
-        working-directory: auth
+        working-directory: apps/server
         run: mvn verify -B
 
       - name: JaCoCo 커버리지 PR 코멘트
         uses: madrapps/jacoco-report@v1.7.1
         with:
-          paths: auth/target/site/jacoco/jacoco.xml
+          paths: apps/server/target/site/jacoco/jacoco.xml
           token: ${{ secrets.GITHUB_TOKEN }}
           title: '## Coverage Report'
           update-comment: true
