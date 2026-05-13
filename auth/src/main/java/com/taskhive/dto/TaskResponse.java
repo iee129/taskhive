@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter @Builder
 public class TaskResponse {
@@ -17,6 +18,7 @@ public class TaskResponse {
     private Long assigneeId;
     private LocalDate dueDate;
     private LocalDateTime createdAt;
+    private List<LabelResponse> labels;
 
     public static TaskResponse from(Task task) {
         return TaskResponse.builder()
@@ -29,6 +31,7 @@ public class TaskResponse {
                 .assigneeId(task.getAssignee() != null ? task.getAssignee().getId() : null)
                 .dueDate(task.getDueDate())
                 .createdAt(task.getCreatedAt())
+                .labels(task.getLabels().stream().map(LabelResponse::from).toList())
                 .build();
     }
 }

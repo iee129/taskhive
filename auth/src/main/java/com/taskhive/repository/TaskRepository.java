@@ -18,13 +18,15 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     long countByStatusAndDeletedAtIsNull(Task.Status status);
     long countByPriorityAndDeletedAtIsNull(Task.Priority priority);
 
-    @Query("SELECT t FROM Task t WHERE t.deletedAt IS NULL " +
+    @Query("SELECT DISTINCT t FROM Task t LEFT JOIN t.labels l WHERE t.deletedAt IS NULL " +
            "AND (:status IS NULL OR t.status = :status) " +
            "AND (:priority IS NULL OR t.priority = :priority) " +
-           "AND (:search IS NULL OR LOWER(t.title) LIKE LOWER(CONCAT('%', :search, '%')))")
+           "AND (:search IS NULL OR LOWER(t.title) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "AND (:labelId IS NULL OR l.id = :labelId)")
     List<Task> findFiltered(@Param("status") Task.Status status,
                             @Param("priority") Task.Priority priority,
-                            @Param("search") String search);
+                            @Param("search") String search,
+                            @Param("labelId") Long labelId);
 
     @Query("SELECT t FROM Task t WHERE t.project.id = :projectId AND t.status = 'IN_PROGRESS' AND t.deletedAt IS NULL AND t.updatedAt < :cutoff")
     List<Task> findBlockers(@Param("projectId") Long projectId, @Param("cutoff") LocalDateTime cutoff);

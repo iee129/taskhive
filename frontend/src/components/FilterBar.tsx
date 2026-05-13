@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Input, Select, Space, Button, message } from 'antd';
 import { SearchOutlined, ClearOutlined, RobotOutlined } from '@ant-design/icons';
 import type { TaskStatus, TaskPriority } from '../types/task';
+import type { LabelResponse } from '../api/labels';
 import { parseFilter } from '../api/ai';
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080';
@@ -10,9 +11,12 @@ interface FilterBarProps {
   status?: TaskStatus;
   priority?: TaskPriority;
   search?: string;
+  labelId?: number;
+  labels?: LabelResponse[];
   onStatusChange: (v?: TaskStatus) => void;
   onPriorityChange: (v?: TaskPriority) => void;
   onSearchChange: (v: string) => void;
+  onLabelChange: (v?: number) => void;
   onClear: () => void;
 }
 
@@ -29,8 +33,8 @@ const PRIORITY_OPTIONS = [
 ];
 
 export default function FilterBar({
-  status, priority, search,
-  onStatusChange, onPriorityChange, onSearchChange, onClear,
+  status, priority, search, labelId, labels,
+  onStatusChange, onPriorityChange, onSearchChange, onLabelChange, onClear,
 }: FilterBarProps) {
   const [aiEnabled, setAiEnabled] = useState(false);
   const [nlQuery, setNlQuery] = useState('');
@@ -100,6 +104,16 @@ export default function FilterBar({
         style={{ width: 130 }}
         options={PRIORITY_OPTIONS}
       />
+      {labels && labels.length > 0 && (
+        <Select
+          placeholder="라벨 필터"
+          value={labelId}
+          onChange={onLabelChange}
+          allowClear
+          style={{ width: 140 }}
+          options={labels.map((l) => ({ value: l.id, label: l.name }))}
+        />
+      )}
       <Button icon={<ClearOutlined />} onClick={onClear}>초기화</Button>
     </Space>
   );

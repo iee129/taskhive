@@ -5,6 +5,7 @@ import { RobotOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { getTasks, createTask, updateTask, deleteTask } from '../api/tasks';
 import type { TaskResponse, TaskRequest, TaskStatus, TaskPriority } from '../types/task';
+import { getProjectLabels, addLabelToTask, removeLabelFromTask, type LabelResponse } from '../api/labels';
 import FilterBar from '../components/FilterBar';
 import CommentList from '../components/CommentList';
 import AiTaskInput from '../components/AiTaskInput';
@@ -42,6 +43,10 @@ export default function TasksPage() {
   const [filterStatus, setFilterStatus] = useState<TaskStatus | undefined>();
   const [filterPriority, setFilterPriority] = useState<TaskPriority | undefined>();
   const [filterSearch, setFilterSearch] = useState('');
+  const [filterLabelId, setFilterLabelId] = useState<number | undefined>();
+  const [allLabels, setAllLabels] = useState<LabelResponse[]>([]);
+  const [projectLabels, setProjectLabels] = useState<LabelResponse[]>([]);
+  const [selectedLabelIds, setSelectedLabelIds] = useState<number[]>([]);
 
   const [prioritizeOpen, setPrioritizeOpen] = useState(false);
   const [prioritizeItems, setPrioritizeItems] = useState<PrioritizeItem[]>([]);
@@ -58,6 +63,7 @@ export default function TasksPage() {
         status: filterStatus,
         priority: filterPriority,
         search: filterSearch || undefined,
+        labelId: filterLabelId,
       }));
     } catch {
       messageApi.error('태스크 목록을 불러오지 못했습니다');
@@ -66,7 +72,7 @@ export default function TasksPage() {
     }
   };
 
-  useEffect(() => { fetchTasks(); }, [filterStatus, filterPriority, filterSearch]);
+  useEffect(() => { fetchTasks(); }, [filterStatus, filterPriority, filterSearch, filterLabelId]);
 
   useEffect(() => {
     fetch(`${API_URL}/api/ai/capabilities`)
@@ -76,10 +82,23 @@ export default function TasksPage() {
   }, []);
 
   useEffect(() => {
-    if (aiEnabled) {
-      getProjects().then(setProjects).catch(() => {});
+    getProjects().then((ps) => {
+      setProjects(ps);
+      // Load all labels across all projects for the filter bar
+      Promise.all(ps.map((p) => getProjectLabels(p.id)))
+        .then((results) => setAllLabels(results.flat()))
+        .catch(() => {});
+    }).catch(() => {});
+  }, []);
+
+  const handleFormProjectChange = (projectId: number | undefined) => {
+    setSelectedLabelIds([]);
+    if (projectId) {
+      getProjectLabels(projectId).then(setProjectLabels).catch(() => setProjectLabels([]));
+    } else {
+      setProjectLabels([]);
     }
-  }, [aiEnabled]);
+  };
 
   const handlePrioritize = async () => {
     if (!selectedProjectId) return;
@@ -118,18 +137,29 @@ export default function TasksPage() {
 
   const openCreate = () => {
     setEditingTask(null);
+    setProjectLabels([]);
+    setSelectedLabelIds([]);
     form.resetFields();
     setModalOpen(true);
   };
 
   const openEdit = (task: TaskResponse) => {
     setEditingTask(task);
+    const existingLabelIds = (task.labels ?? []).map((l) => l.id);
+    setSelectedLabelIds(existingLabelIds);
+    if (task.projectId) {
+      getProjectLabels(task.projectId).then(setProjectLabels).catch(() => setProjectLabels([]));
+    } else {
+      setProjectLabels([]);
+    }
     form.setFieldsValue({
       title: task.title,
       description: task.description,
       status: task.status,
       priority: task.priority,
       dueDate: task.dueDate ? dayjs(task.dueDate) : undefined,
+      projectId: task.projectId,
+      labelIds: existingLabelIds,
     });
     setModalOpen(true);
   };
@@ -143,12 +173,24 @@ export default function TasksPage() {
         status: values.status,
         priority: values.priority,
         dueDate: values.dueDate ? values.dueDate.format('YYYY-MM-DD') : undefined,
+        projectId: values.projectId,
       };
       if (editingTask) {
         await updateTask(editingTask.id, payload);
+        // Sync labels: remove old, add new
+        const oldIds = (editingTask.labels ?? []).map((l) => l.id);
+        const newIds: number[] = values.labelIds ?? [];
+        const toRemove = oldIds.filter((id) => !newIds.includes(id));
+        const toAdd = newIds.filter((id) => !oldIds.includes(id));
+        await Promise.all([
+          ...toRemove.map((lid) => removeLabelFromTask(editingTask.id, lid)),
+          ...toAdd.map((lid) => addLabelToTask(editingTask.id, lid)),
+        ]);
         messageApi.success('태스크가 수정되었습니다');
       } else {
-        await createTask(payload);
+        const created = await createTask(payload);
+        const newIds: number[] = values.labelIds ?? [];
+        await Promise.all(newIds.map((lid) => addLabelToTask(created.id, lid)));
         messageApi.success('태스크가 생성되었습니다');
       }
       setModalOpen(false);
@@ -184,8 +226,18 @@ export default function TasksPage() {
       title: '우선순위', dataIndex: 'priority', key: 'priority',
       render: (priority: TaskPriority) => <Tag color={PRIORITY_COLOR[priority]}>{PRIORITY_LABEL[priority]}</Tag>,
     },
-    { title: '마감일', dataIndex: 'dueDate', key: 'dueDate', render: (v) => v ?? '-' },
-    { title: '생성일', dataIndex: 'createdAt', key: 'createdAt', render: (v) => dayjs(v).format('YYYY-MM-DD') },
+    {
+      title: '라벨', key: 'labels',
+      render: (_: unknown, record: TaskResponse) => (
+        <Space size={4} wrap>
+          {(record.labels ?? []).map((l) => (
+            <Tag key={l.id} color={l.color}>{l.name}</Tag>
+          ))}
+        </Space>
+      ),
+    },
+    { title: '마감일', dataIndex: 'dueDate', key: 'dueDate', render: (v: string | undefined) => v ?? '-' },
+    { title: '생성일', dataIndex: 'createdAt', key: 'createdAt', render: (v: string) => dayjs(v).format('YYYY-MM-DD') },
     {
       title: '작업', key: 'actions',
       render: (_, record) => (
@@ -220,10 +272,13 @@ export default function TasksPage() {
         status={filterStatus}
         priority={filterPriority}
         search={filterSearch}
+        labelId={filterLabelId}
+        labels={allLabels}
         onStatusChange={setFilterStatus}
         onPriorityChange={setFilterPriority}
         onSearchChange={setFilterSearch}
-        onClear={() => { setFilterStatus(undefined); setFilterPriority(undefined); setFilterSearch(''); }}
+        onLabelChange={setFilterLabelId}
+        onClear={() => { setFilterStatus(undefined); setFilterPriority(undefined); setFilterSearch(''); setFilterLabelId(undefined); }}
       />
 
       <Table rowKey="id" columns={columns} dataSource={tasks} loading={loading} />
@@ -253,6 +308,26 @@ export default function TasksPage() {
               { value: 'LOW', label: '낮음' },
             ]} />
           </Form.Item>
+          <Form.Item name="projectId" label="프로젝트">
+            <Select
+              placeholder="프로젝트 선택"
+              allowClear
+              options={projects.map((p) => ({ value: p.id, label: p.name }))}
+              onChange={handleFormProjectChange}
+            />
+          </Form.Item>
+          {projectLabels.length > 0 && (
+            <Form.Item name="labelIds" label="라벨">
+              <Select
+                mode="multiple"
+                placeholder="라벨 선택"
+                allowClear
+                options={projectLabels.map((l) => ({ value: l.id, label: l.name }))}
+                onChange={(ids: number[]) => setSelectedLabelIds(ids)}
+                value={selectedLabelIds}
+              />
+            </Form.Item>
+          )}
           <Form.Item name="dueDate" label="마감일">
             <Space.Compact style={{ width: '100%' }}>
               <Form.Item name="dueDate" noStyle>

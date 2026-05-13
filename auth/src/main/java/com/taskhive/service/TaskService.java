@@ -22,15 +22,18 @@ public class TaskService {
     private final ProjectMemberRepository memberRepository;
     private final TaskStatusHistoryRepository statusHistoryRepository;
     private final WebhookDeliveryService webhookDeliveryService;
+    private final LabelRepository labelRepository;
 
+    @Transactional(readOnly = true)
     public List<TaskResponse> getAllTasks() {
         return taskRepository.findAllByDeletedAtIsNull().stream()
                 .map(TaskResponse::from)
                 .toList();
     }
 
-    public List<TaskResponse> getFilteredTasks(Task.Status status, Task.Priority priority, String search) {
-        return taskRepository.findFiltered(status, priority, search).stream()
+    @Transactional(readOnly = true)
+    public List<TaskResponse> getFilteredTasks(Task.Status status, Task.Priority priority, String search, Long labelId) {
+        return taskRepository.findFiltered(status, priority, search, labelId).stream()
                 .map(TaskResponse::from)
                 .toList();
     }
@@ -109,6 +112,26 @@ public class TaskService {
         if (projectId != null) {
             webhookDeliveryService.deliverAsync(projectId, "task.deleted", id);
         }
+    }
+
+    @Transactional
+    public void addLabelToTask(Long taskId, Long labelId, String requesterEmail) {
+        Task task = taskRepository.findByIdAndDeletedAtIsNull(taskId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.TASK_NOT_FOUND));
+        checkProjectMembership(task, requesterEmail);
+        Label label = labelRepository.findById(labelId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.LABEL_NOT_FOUND));
+        task.getLabels().add(label);
+    }
+
+    @Transactional
+    public void removeLabelFromTask(Long taskId, Long labelId, String requesterEmail) {
+        Task task = taskRepository.findByIdAndDeletedAtIsNull(taskId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.TASK_NOT_FOUND));
+        checkProjectMembership(task, requesterEmail);
+        Label label = labelRepository.findById(labelId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.LABEL_NOT_FOUND));
+        task.getLabels().remove(label);
     }
 
     private void checkProjectMembership(Task task, String requesterEmail) {

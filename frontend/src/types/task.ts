@@ -1,6 +1,12 @@
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'DONE';
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH';
 
+export interface LabelResponse {
+  id: number;
+  name: string;
+  color: string;
+}
+
 export interface TaskRequest {
   title: string;
   description?: string;
@@ -21,6 +27,7 @@ export interface TaskResponse {
   assigneeId?: number;
   dueDate?: string;
   createdAt: string;
+  labels?: LabelResponse[];
 }
 
 export interface CommentResponse {

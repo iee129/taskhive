@@ -27,11 +27,12 @@ public class TaskController {
     public ResponseEntity<List<TaskResponse>> getAll(
             @RequestParam(required = false) Task.Status status,
             @RequestParam(required = false) Task.Priority priority,
-            @RequestParam(required = false) String search) {
-        if (status == null && priority == null && (search == null || search.isBlank())) {
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long labelId) {
+        if (status == null && priority == null && (search == null || search.isBlank()) && labelId == null) {
             return ResponseEntity.ok(taskService.getAllTasks());
         }
-        return ResponseEntity.ok(taskService.getFilteredTasks(status, priority, search));
+        return ResponseEntity.ok(taskService.getFilteredTasks(status, priority, search, labelId));
     }
 
     @GetMapping("/{id}")

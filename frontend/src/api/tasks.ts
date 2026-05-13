@@ -5,6 +5,7 @@ interface TaskFilter {
   status?: TaskStatus;
   priority?: TaskPriority;
   search?: string;
+  labelId?: number;
 }
 
 export const getTasks = (filter?: TaskFilter) => {
@@ -12,6 +13,7 @@ export const getTasks = (filter?: TaskFilter) => {
   if (filter?.status) params.set('status', filter.status);
   if (filter?.priority) params.set('priority', filter.priority);
   if (filter?.search) params.set('search', filter.search);
+  if (filter?.labelId !== undefined) params.set('labelId', String(filter.labelId));
   return client.get<TaskResponse[]>('/api/tasks', { params }).then((r) => r.data);
 };
 

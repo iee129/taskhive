@@ -25,7 +25,8 @@ public enum ErrorCode {
     AI_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "AI provider를 사용할 수 없습니다"),
     TOKEN_NOT_FOUND(HttpStatus.NOT_FOUND, "토큰을 찾을 수 없습니다"),
     WEBHOOK_NOT_FOUND(HttpStatus.NOT_FOUND, "웹훅을 찾을 수 없습니다"),
-    SSRF_BLOCKED(HttpStatus.BAD_REQUEST, "사설 IP 또는 localhost URL은 허용되지 않습니다");
+    SSRF_BLOCKED(HttpStatus.BAD_REQUEST, "사설 IP 또는 localhost URL은 허용되지 않습니다"),
+    LABEL_NOT_FOUND(HttpStatus.NOT_FOUND, "라벨을 찾을 수 없습니다");
 
     private final HttpStatus status;
     private final String message;
