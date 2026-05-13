@@ -33,6 +33,42 @@ docker compose up
 
 > **사전 요구 사항**: Docker Desktop 설치 필요. 첫 빌드는 약 5–10분 소요됩니다.
 
+## 셀프호스팅 가이드
+
+### 포트 구성
+
+| 서비스 | 포트 | 설명 |
+|--------|------|------|
+| 프론트엔드 | `80` | Nginx SPA |
+| 백엔드 | `8080` | Spring Boot REST API |
+| PostgreSQL | `5432` | 내부 전용 (외부 노출 없음) |
+
+### 환경 변수 커스터마이징
+
+루트에 `.env` 파일을 생성해 기본값을 덮어쓸 수 있습니다:
+
+```env
+# 필수
+JWT_SECRET=your-256bit-secret-key-here
+
+# AI 프로바이더 (기본값: ollama)
+AI_PROVIDER=ollama
+OLLAMA_URL=http://host.docker.internal:11434
+
+# 이메일 (선택 — 미설정 시 콘솔 로그로 출력)
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=noreply@yourdomain.com
+MAIL_PASSWORD=your-app-password
+```
+
+### 프로덕션 운영 팁
+
+- **HTTPS**: Nginx 앞에 리버스 프록시(Caddy / Traefik / Let's Encrypt)를 두는 것을 권장합니다.
+- **볼륨**: PostgreSQL 데이터는 `docker-compose.yml`의 named volume에 영속됩니다. 정기 백업을 설정하세요.
+- **업그레이드**: 새 버전 출시 시 `docker compose pull && docker compose up -d`로 이미지를 교체하세요. Flyway 마이그레이션이 자동 적용됩니다.
+- **리소스**: 백엔드 JVM 최소 512MB RAM 권장.
+
 ## 로컬-퍼스트 AI (BYO-LLM)
 
 TaskHive의 AI 기능은 **당신의 LLM을 직접 가져올 수 있습니다 (Bring Your Own LLM)**. 환경변수 하나로 프로바이더를 교체할 수 있으며, **셀프호스팅 시 기본값은 Ollama — 모든 AI 요청이 내 서버에서만 처리됩니다.**
