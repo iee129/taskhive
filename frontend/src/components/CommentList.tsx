@@ -5,6 +5,7 @@ import dayjs from 'dayjs';
 import { getComments, addComment, deleteComment } from '../api/comments';
 import { summarizeTask } from '../api/ai';
 import type { CommentResponse } from '../types/task';
+import MarkdownContent from './MarkdownContent';
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080';
 
@@ -110,7 +111,7 @@ export default function CommentList({ taskId, currentUserEmail }: CommentListPro
                   </Typography.Text>
                 </Space>
               }
-              description={comment.content}
+              description={<MarkdownContent content={comment.content} />}
             />
           </List.Item>
         )}

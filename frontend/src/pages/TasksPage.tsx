@@ -8,6 +8,7 @@ import type { TaskResponse, TaskRequest, TaskStatus, TaskPriority } from '../typ
 import { getProjectLabels, addLabelToTask, removeLabelFromTask, type LabelResponse } from '../api/labels';
 import FilterBar from '../components/FilterBar';
 import CommentList from '../components/CommentList';
+import MarkdownContent from '../components/MarkdownContent';
 import AiTaskInput from '../components/AiTaskInput';
 import BrainDumpModal from '../components/BrainDumpModal';
 import { prioritizeTasks, estimateTask, type PrioritizeItem } from '../api/ai';
@@ -359,7 +360,7 @@ export default function TasksPage() {
             <p><strong>상태:</strong> <Tag color={STATUS_COLOR[drawerTask.status]}>{STATUS_LABEL[drawerTask.status]}</Tag></p>
             <p><strong>우선순위:</strong> <Tag color={PRIORITY_COLOR[drawerTask.priority]}>{PRIORITY_LABEL[drawerTask.priority]}</Tag></p>
             {drawerTask.dueDate && <p><strong>마감일:</strong> {drawerTask.dueDate}</p>}
-            {drawerTask.description && <p><strong>설명:</strong> {drawerTask.description}</p>}
+            {drawerTask.description && <p><strong>설명:</strong> <MarkdownContent content={drawerTask.description} /></p>}
             <Divider />
             <CommentList taskId={drawerTask.id} />
           </>

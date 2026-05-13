@@ -1,16 +1,22 @@
 import { useEffect, useState } from 'react';
-import { Layout as AntLayout, Menu } from 'antd';
+import { Layout as AntLayout, Menu, Switch, Tooltip } from 'antd';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import {
   CheckSquareOutlined, UserOutlined, LogoutOutlined,
   AppstoreOutlined, BarChartOutlined, ProjectOutlined, SettingOutlined,
+  BulbOutlined,
 } from '@ant-design/icons';
 import AiProviderBanner from './AiProviderBanner';
 import CommandPalette from './CommandPalette';
 
 const { Sider, Content } = AntLayout;
 
-export default function Layout() {
+interface LayoutProps {
+  isDark: boolean;
+  onToggleDark: () => void;
+}
+
+export default function Layout({ isDark, onToggleDark }: LayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -52,20 +58,32 @@ export default function Layout() {
 
   return (
     <AntLayout style={{ minHeight: '100vh' }}>
-      <Sider theme="light" breakpoint="lg" collapsedWidth={0}>
+      <Sider theme={isDark ? 'dark' : 'light'} breakpoint="lg" collapsedWidth={0}>
         <div style={{ padding: '20px 16px', fontWeight: 700, fontSize: 18, color: '#1677ff' }}>
           TaskHive
         </div>
         <Menu
+          theme={isDark ? 'dark' : 'light'}
           mode="inline"
           selectedKeys={[location.pathname]}
           items={menuItems}
           onClick={({ key }) => key === 'logout' ? handleLogout() : navigate(key)}
         />
+        <div style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <BulbOutlined />
+          <Tooltip title={isDark ? '라이트 모드' : '다크 모드'}>
+            <Switch
+              checked={isDark}
+              onChange={onToggleDark}
+              size="small"
+            />
+          </Tooltip>
+          <span style={{ fontSize: 12 }}>{isDark ? '다크' : '라이트'}</span>
+        </div>
       </Sider>
       <AntLayout>
         <AiProviderBanner />
-        <Content style={{ padding: 24, background: '#fff' }}>
+        <Content style={{ padding: 24 }}>
           <Outlet />
         </Content>
       </AntLayout>
