@@ -99,6 +99,17 @@ class AiControllerTest {
                 .andExpect(jsonPath("$.code").value("AI_UNAVAILABLE"));
     }
 
+    @Test
+    void estimate_unavailable_returns503() throws Exception {
+        String token = obtainToken("estimate_test@example.com");
+        mockMvc.perform(post("/api/ai/estimate")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("title", "로그인 구현", "description", "OAuth2 로그인 구현"))))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("AI_UNAVAILABLE"));
+    }
+
     private String obtainToken(String email) throws Exception {
         RegisterRequest reg = new RegisterRequest();
         reg.setName("테스터");

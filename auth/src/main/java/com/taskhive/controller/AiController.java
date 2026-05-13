@@ -6,6 +6,8 @@ import com.taskhive.dto.BrainDumpItem;
 import com.taskhive.dto.BrainDumpRequest;
 import com.taskhive.dto.CommentResponse;
 import com.taskhive.dto.CreateFromBreakdownRequest;
+import com.taskhive.dto.EstimateRequest;
+import com.taskhive.dto.EstimateResponse;
 import com.taskhive.dto.FilterParseRequest;
 import com.taskhive.dto.FilterParseResponse;
 import com.taskhive.dto.TaskRequest;
@@ -72,5 +74,11 @@ public class AiController {
     public ResponseEntity<List<TaskResponse>> createFromBreakdown(
             @RequestBody CreateFromBreakdownRequest req, Authentication auth) {
         return ResponseEntity.ok(aiService.createTasksFromBreakdown(req.items(), req.projectId(), auth.getName()));
+    }
+
+    @PostMapping("/estimate")
+    public ResponseEntity<EstimateResponse> estimate(@Valid @RequestBody EstimateRequest req,
+                                                      Authentication auth) {
+        return ResponseEntity.ok(aiService.estimate(req.title(), req.description()));
     }
 }

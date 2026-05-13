@@ -56,3 +56,14 @@ export async function generateStandup(projectId: number): Promise<StandupItem[]>
   const res = await client.post<StandupItem[]>(`/api/projects/${projectId}/standup`);
   return res.data;
 }
+
+export interface EstimateResponse {
+  effort: 'S' | 'M' | 'L';
+  estimatedDays: number;
+  suggestedDueDate: string;
+}
+
+export async function estimateTask(title: string, description?: string): Promise<EstimateResponse> {
+  const res = await client.post<EstimateResponse>('/api/ai/estimate', { title, description });
+  return res.data;
+}

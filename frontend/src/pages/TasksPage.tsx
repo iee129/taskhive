@@ -9,7 +9,7 @@ import FilterBar from '../components/FilterBar';
 import CommentList from '../components/CommentList';
 import AiTaskInput from '../components/AiTaskInput';
 import BrainDumpModal from '../components/BrainDumpModal';
-import { prioritizeTasks, type PrioritizeItem } from '../api/ai';
+import { prioritizeTasks, estimateTask, type PrioritizeItem } from '../api/ai';
 import { getProjects, type ProjectResponse } from '../api/projects';
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080';
@@ -49,6 +49,7 @@ export default function TasksPage() {
   const [projects, setProjects] = useState<ProjectResponse[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<number | undefined>();
   const [prioritizeTitleMap, setPrioritizeTitleMap] = useState<Record<number, string>>({});
+  const [estimateLoading, setEstimateLoading] = useState(false);
 
   const fetchTasks = async () => {
     setLoading(true);
@@ -93,6 +94,25 @@ export default function TasksPage() {
       messageApi.error('우선순위화에 실패했습니다 (AI가 활성화되어 있는지 확인하세요)');
     } finally {
       setPrioritizeLoading(false);
+    }
+  };
+
+  const handleEstimate = async () => {
+    const title = form.getFieldValue('title') as string;
+    if (!title?.trim()) {
+      messageApi.warning('제목을 먼저 입력하세요');
+      return;
+    }
+    setEstimateLoading(true);
+    try {
+      const description = form.getFieldValue('description') as string | undefined;
+      const result = await estimateTask(title, description);
+      form.setFieldValue('dueDate', dayjs(result.suggestedDueDate));
+      messageApi.success(`추정: ${result.effort}급, ${result.estimatedDays}일 → ${result.suggestedDueDate}`);
+    } catch {
+      messageApi.error('추정에 실패했습니다');
+    } finally {
+      setEstimateLoading(false);
     }
   };
 
@@ -234,7 +254,21 @@ export default function TasksPage() {
             ]} />
           </Form.Item>
           <Form.Item name="dueDate" label="마감일">
-            <DatePicker style={{ width: '100%' }} />
+            <Space.Compact style={{ width: '100%' }}>
+              <Form.Item name="dueDate" noStyle>
+                <DatePicker style={{ width: '100%' }} />
+              </Form.Item>
+              {aiEnabled && (
+                <Button
+                  icon={<RobotOutlined />}
+                  loading={estimateLoading}
+                  onClick={handleEstimate}
+                  title="AI 공수 추정으로 마감일 자동 채움"
+                >
+                  추정
+                </Button>
+              )}
+            </Space.Compact>
           </Form.Item>
         </Form>
       </Modal>

@@ -6,6 +6,7 @@ import com.taskhive.dto.AiTaskRequest;
 import com.taskhive.dto.BrainDumpItem;
 import com.taskhive.dto.CommentRequest;
 import com.taskhive.dto.CommentResponse;
+import com.taskhive.dto.EstimateResponse;
 import com.taskhive.dto.FilterParseResponse;
 import com.taskhive.dto.PrioritizeItem;
 import com.taskhive.dto.StandupResponse;
@@ -379,6 +380,46 @@ public class AiService {
         return taskRepository.findBlockers(projectId, cutoff).stream()
                 .map(TaskResponse::from)
                 .collect(Collectors.toList());
+    }
+
+    public EstimateResponse estimate(String title, String description) {
+        if (!aiProvider.isAvailable()) {
+            throw new BusinessException(ErrorCode.AI_UNAVAILABLE);
+        }
+
+        String today = LocalDate.now().toString();
+        String prompt = """
+                You are a task estimation assistant. Estimate the effort and duration for the following task.
+                Today's date is %s.
+                Respond ONLY with valid JSON in this exact format:
+                {"effort": "S|M|L", "estimatedDays": <integer>, "suggestedDueDate": "YYYY-MM-DD"}
+
+                effort: S = small (1-2 days), M = medium (3-7 days), L = large (8+ days)
+                estimatedDays: number of working days needed
+                suggestedDueDate: today + estimatedDays (skip weekends)
+
+                Task title: %s
+                Task description: %s
+                """.formatted(today, title, description != null ? description : "");
+
+        try {
+            String responseText = aiProvider.generate(prompt);
+            if (responseText == null || responseText.isBlank()) {
+                return new EstimateResponse("M", 3, LocalDate.now().plusDays(3).toString());
+            }
+
+            JsonNode parsed = objectMapper.readTree(responseText);
+            String effort = parsed.path("effort").asText("M");
+            int estimatedDays = parsed.path("estimatedDays").asInt(3);
+            String suggestedDueDate = nullableText(parsed.path("suggestedDueDate"));
+            if (suggestedDueDate == null) {
+                suggestedDueDate = LocalDate.now().plusDays(estimatedDays).toString();
+            }
+            return new EstimateResponse(effort, estimatedDays, suggestedDueDate);
+        } catch (Exception e) {
+            log.warn("AI 공수 추정 파싱 실패, 기본값 반환: {}", e.getMessage());
+            return new EstimateResponse("M", 3, LocalDate.now().plusDays(3).toString());
+        }
     }
 
     private String nullableText(JsonNode node) {
