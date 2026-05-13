@@ -68,7 +68,7 @@ public class TaskService {
         }
         TaskResponse response = TaskResponse.from(taskRepository.save(task));
         if (task.getProject() != null) {
-            webhookDeliveryService.deliver(task.getProject().getId(), "task.created", response);
+            webhookDeliveryService.deliverAsync(task.getProject().getId(), "task.created", response);
         }
         return response;
     }
@@ -94,7 +94,7 @@ public class TaskService {
         task.setDueDate(request.getDueDate());
         TaskResponse response = TaskResponse.from(taskRepository.save(task));
         if (task.getProject() != null) {
-            webhookDeliveryService.deliver(task.getProject().getId(), "task.updated", response);
+            webhookDeliveryService.deliverAsync(task.getProject().getId(), "task.updated", response);
         }
         return response;
     }
@@ -107,7 +107,7 @@ public class TaskService {
         Long projectId = task.getProject() != null ? task.getProject().getId() : null;
         task.setDeletedAt(LocalDateTime.now());
         if (projectId != null) {
-            webhookDeliveryService.deliver(projectId, "task.deleted", id);
+            webhookDeliveryService.deliverAsync(projectId, "task.deleted", id);
         }
     }
 

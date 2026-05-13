@@ -4,11 +4,26 @@ import {
   CheckCircleOutlined, ClockCircleOutlined, ExclamationCircleOutlined,
   ProjectOutlined, MessageOutlined, WarningOutlined, RobotOutlined,
 } from '@ant-design/icons';
+import {
+  LineChart, Line, AreaChart, Area, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+} from 'recharts';
 import { getStats } from '../api/stats';
 import { getProjects, type ProjectResponse } from '../api/projects';
+import { getBurndown, getCfd, getCycleTime, type BurndownPoint, type CfdPoint, type CycleTimeItem } from '../api/analytics';
 import ActivityFeed from '../components/ActivityFeed';
 import StandupModal from '../components/StandupModal';
 import type { StatsResponse } from '../types/task';
+
+function toDateRange(days: number): { from: string; to: string } {
+  const to = new Date();
+  const from = new Date();
+  from.setDate(from.getDate() - days);
+  return {
+    from: from.toISOString().slice(0, 10),
+    to: to.toISOString().slice(0, 10),
+  };
+}
 
 export default function StatsPage() {
   const [stats, setStats] = useState<StatsResponse | null>(null);
@@ -16,6 +31,9 @@ export default function StatsPage() {
   const [projects, setProjects] = useState<ProjectResponse[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [standupOpen, setStandupOpen] = useState(false);
+  const [burndown, setBurndown] = useState<BurndownPoint[]>([]);
+  const [cfd, setCfd] = useState<CfdPoint[]>([]);
+  const [cycleTime, setCycleTime] = useState<CycleTimeItem[]>([]);
 
   useEffect(() => {
     setLoading(true);
@@ -25,6 +43,14 @@ export default function StatsPage() {
       if (ps.length > 0) setSelectedProjectId(ps[0].id);
     }).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!selectedProjectId) return;
+    const { from, to } = toDateRange(14);
+    getBurndown(selectedProjectId, from, to).then(setBurndown).catch(() => {});
+    getCfd(selectedProjectId, from, to).then(setCfd).catch(() => {});
+    getCycleTime(selectedProjectId).then(setCycleTime).catch(() => {});
+  }, [selectedProjectId]);
 
   if (loading) return <Spin size="large" style={{ display: 'block', marginTop: 80 }} />;
   if (!stats) return null;
@@ -121,6 +147,57 @@ export default function StatsPage() {
           </Card>
         </Col>
       </Row>
+
+      {selectedProjectId != null && (
+        <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+          <Col xs={24} md={12}>
+            <Card title="번다운 차트 (최근 14일)">
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={burndown}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="remaining" stroke="#1677ff" name="잔여 태스크" dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </Card>
+          </Col>
+          <Col xs={24} md={12}>
+            <Card title="누적 흐름 다이어그램 (최근 14일)">
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={cfd}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Legend />
+                  <Area type="monotone" dataKey="done" stackId="1" stroke="#52c41a" fill="#52c41a" name="완료" />
+                  <Area type="monotone" dataKey="inProgress" stackId="1" stroke="#1677ff" fill="#1677ff" name="진행 중" />
+                  <Area type="monotone" dataKey="todo" stackId="1" stroke="#faad14" fill="#faad14" name="할 일" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </Card>
+          </Col>
+          <Col xs={24}>
+            <Card title="사이클 타임 (완료 태스크별 소요일)">
+              {cycleTime.length === 0 ? (
+                <Typography.Text type="secondary">완료된 태스크가 없습니다.</Typography.Text>
+              ) : (
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={cycleTime}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="title" tick={{ fontSize: 11 }} />
+                    <YAxis allowDecimals={false} label={{ value: '일', angle: -90, position: 'insideLeft' }} />
+                    <Tooltip />
+                    <Bar dataKey="cycleDays" fill="#722ed1" name="소요일" />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </Card>
+          </Col>
+        </Row>
+      )}
 
       <Row style={{ marginTop: 16 }}>
         <Col xs={24}>

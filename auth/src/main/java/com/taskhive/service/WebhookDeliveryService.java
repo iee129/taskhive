@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import javax.crypto.Mac;
@@ -17,7 +18,6 @@ import java.time.Instant;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Service
@@ -31,7 +31,12 @@ public class WebhookDeliveryService {
     private final ObjectMapper objectMapper;
 
     @Async
-    public CompletableFuture<Void> deliver(Long projectId, String eventType, Object payload) {
+    public void deliverAsync(Long projectId, String eventType, Object payload) {
+        deliver(projectId, eventType, payload);
+    }
+
+    @Transactional
+    public void deliver(Long projectId, String eventType, Object payload) {
         List<ProjectWebhook> webhooks = webhookRepository.findByProjectIdAndEnabledTrue(projectId);
         for (ProjectWebhook webhook : webhooks) {
             if (!webhook.getEvents().contains(eventType)) continue;
@@ -65,7 +70,6 @@ public class WebhookDeliveryService {
                 log.warn("웹훅 전달 실패 [{}]: {}", webhook.getUrl(), e.getMessage());
             }
         }
-        return CompletableFuture.completedFuture(null);
     }
 
     public static String hmacSha256(String secret, String data) {

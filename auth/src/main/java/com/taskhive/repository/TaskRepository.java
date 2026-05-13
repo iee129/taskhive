@@ -32,4 +32,8 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     @Query("SELECT t FROM Task t WHERE t.deletedAt IS NULL AND t.project.id IN :projectIds " +
            "AND (LOWER(t.title) LIKE LOWER(CONCAT('%', :q, '%')) OR LOWER(t.description) LIKE LOWER(CONCAT('%', :q, '%')))")
     List<Task> searchByKeyword(@Param("q") String q, @Param("projectIds") List<Long> projectIds);
+
+    @org.springframework.data.jpa.repository.Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = "UPDATE tasks SET created_at = :createdAt WHERE id = :id", nativeQuery = true)
+    void updateCreatedAtNative(@Param("id") Long id, @Param("createdAt") java.time.LocalDateTime createdAt);
 }
