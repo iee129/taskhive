@@ -28,4 +28,8 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 
     @Query("SELECT t FROM Task t WHERE t.project.id = :projectId AND t.status = 'IN_PROGRESS' AND t.deletedAt IS NULL AND t.updatedAt < :cutoff")
     List<Task> findBlockers(@Param("projectId") Long projectId, @Param("cutoff") LocalDateTime cutoff);
+
+    @Query("SELECT t FROM Task t WHERE t.deletedAt IS NULL AND t.project.id IN :projectIds " +
+           "AND (LOWER(t.title) LIKE LOWER(CONCAT('%', :q, '%')) OR LOWER(t.description) LIKE LOWER(CONCAT('%', :q, '%')))")
+    List<Task> searchByKeyword(@Param("q") String q, @Param("projectIds") List<Long> projectIds);
 }

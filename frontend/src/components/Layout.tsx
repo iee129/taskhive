@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Layout as AntLayout, Menu } from 'antd';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import {
@@ -5,12 +6,34 @@ import {
   AppstoreOutlined, BarChartOutlined, ProjectOutlined, SettingOutlined,
 } from '@ant-design/icons';
 import AiProviderBanner from './AiProviderBanner';
+import CommandPalette from './CommandPalette';
 
 const { Sider, Content } = AntLayout;
 
 export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [paletteOpen, setPaletteOpen] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement).isContentEditable;
+
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setPaletteOpen(v => !v);
+        return;
+      }
+      if (isInput || paletteOpen) return;
+
+      if (e.key === 'c') { navigate('/tasks'); }
+      else if (e.key === '/') { e.preventDefault(); setPaletteOpen(true); }
+      else if (e.key === '?') { setPaletteOpen(true); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [navigate, paletteOpen]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -46,6 +69,8 @@ export default function Layout() {
           <Outlet />
         </Content>
       </AntLayout>
+
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </AntLayout>
   );
 }
