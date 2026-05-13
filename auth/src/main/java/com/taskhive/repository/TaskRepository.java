@@ -1,6 +1,7 @@
 package com.taskhive.repository;
 
 import com.taskhive.model.Task;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -9,8 +10,13 @@ import java.util.List;
 import java.util.Optional;
 
 public interface TaskRepository extends JpaRepository<Task, Long> {
+    @EntityGraph(attributePaths = {"project", "assignee", "labels"})
     List<Task> findAllByDeletedAtIsNull();
+
+    @EntityGraph(attributePaths = {"project", "assignee", "labels"})
     Optional<Task> findByIdAndDeletedAtIsNull(Long id);
+
+    @EntityGraph(attributePaths = {"project", "assignee", "labels"})
     List<Task> findByProjectIdAndDeletedAtIsNull(Long projectId);
     List<Task> findByProjectIdAndStatusAndDeletedAtIsNull(Long projectId, Task.Status status);
     List<Task> findByAssigneeIdAndDeletedAtIsNull(Long assigneeId);

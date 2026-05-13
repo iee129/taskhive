@@ -1,5 +1,19 @@
 # TaskHive 아키텍처 가이드
 
+## 왜 만들었나
+
+TaskHive는 "포트폴리오용 프로젝트 관리 도구"가 아니라, 실제 팀이 쓸 수 있는 **셀프호스팅 태스크 관리 + AI 코파일럿**을 목표로 설계했다.
+
+### 만든 배경
+
+오픈소스 프로젝트 관리 도구(Plane.so, Vikunja, Focalboard)는 대부분 두 가지 중 하나를 선택하라고 강요한다: **클라우드 전용 AI** (데이터가 외부로 나감) 또는 **AI 없음**. TaskHive는 `AI_PROVIDER=ollama|groq|none` 환경변수 하나로 이 선택을 런타임에 내릴 수 있게 설계했다. 민감한 데이터를 외부로 보내지 않고도 AI 기능을 쓸 수 있다.
+
+### 핵심 설계 결정 3가지
+
+1. **BYO-LLM 전략 패턴**: `AiProvider` 인터페이스 + OllamaProvider / GroqProvider / NoopProvider. 테스트 시에는 FakeProvider로 교체 — 실제 LLM 호출 없이 AI 엔드포인트 통합 테스트 가능.
+2. **match_key 기반 GroupKFold 데이터 누수 차단**: ML 파이프라인에서 경기 단위로 train/val/test를 나눠 동일 경기가 두 셋에 걸치는 누수를 원천 차단. GroupKFold 없이는 AUC=0.99+처럼 보이지만 실제론 과적합이다.
+3. **트랜잭션 경계를 서비스 레이어에**: Controller는 DTO 변환만, Service만 `@Transactional`. Repository의 JPQL 파생 쿼리는 `@EntityGraph`로 N+1을 컴파일 시점에 차단.
+
 ## 시스템 구성 개요
 
 ```
