@@ -42,3 +42,7 @@ jobs:
 
       - name: Lint
         run: cd frontend && npm run lint
+
+      - name: Audit dependencies
+        run: cd frontend && npm audit --audit-level=high
+        continue-on-error: true

@@ -1,5 +1,7 @@
 # TaskHive 🐝
 
+[![CI](https://github.com/iee129/taskhive/actions/workflows/ci.yml/badge.svg)](https://github.com/iee129/taskhive/actions/workflows/ci.yml)
+
 > 벌집처럼 유기적으로 연결되는 팀 작업·프로젝트 통합 관리 플랫폼
 
 ## 🚀 데모 (무료 호스팅)
