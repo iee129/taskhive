@@ -1,41 +1,41 @@
-# Contributor Covenant Code of Conduct
+# 기여자 행동 강령
 
-## Our Pledge
+## 우리의 약속
 
-We as members, contributors, and leaders pledge to make participation in our community a harassment-free experience for everyone, regardless of age, body size, visible or invisible disability, ethnicity, sex characteristics, gender identity and expression, level of experience, education, socio-economic status, nationality, personal appearance, race, caste, color, religion, or sexual identity and orientation.
+우리는 구성원, 기여자, 리더로서 나이, 체형, 장애 여부, 민족, 성적 특성, 성별 정체성과 표현, 경험 수준, 교육 수준, 사회경제적 지위, 국적, 외모, 인종, 종교, 성적 지향과 무관하게 모든 사람이 괴롭힘 없이 참여할 수 있는 커뮤니티를 만들 것을 약속합니다.
 
-We pledge to act and interact in ways that contribute to an open, welcoming, diverse, inclusive, and healthy community.
+우리는 열린, 환영하는, 다양하고 포용적이며 건강한 커뮤니티에 기여하는 방식으로 행동하고 소통할 것을 약속합니다.
 
-## Our Standards
+## 우리의 기준
 
-Examples of behavior that contributes to a positive environment:
+긍정적인 환경을 만드는 행동의 예:
 
-* Demonstrating empathy and kindness toward other people
-* Being respectful of differing opinions, viewpoints, and experiences
-* Giving and gracefully accepting constructive feedback
-* Accepting responsibility and apologizing to those affected by our mistakes
-* Focusing on what is best not just for us as individuals, but for the overall community
+* 다른 사람에 대한 공감과 친절 표현
+* 다양한 의견, 관점, 경험 존중
+* 건설적인 피드백을 주고받는 자세
+* 실수로 인한 영향에 대한 책임 인정과 사과
+* 개인의 이익보다 커뮤니티 전체에 최선인 것에 집중
 
-Examples of unacceptable behavior:
+허용되지 않는 행동의 예:
 
-* The use of sexualized language or imagery, and sexual attention or advances of any kind
-* Trolling, insulting or derogatory comments, and personal or political attacks
-* Public or private harassment
-* Publishing others' private information without their explicit permission
-* Other conduct which could reasonably be considered inappropriate in a professional setting
+* 성적인 언어나 이미지 사용, 어떤 형태의 성적 관심이나 접근
+* 트롤링, 모욕적이거나 비하적인 댓글, 개인적·정치적 공격
+* 공개적 또는 사적인 괴롭힘
+* 명시적 동의 없이 다른 사람의 개인 정보 공개
+* 전문적 환경에서 부적절하다고 합리적으로 판단될 수 있는 기타 행동
 
-## Enforcement Responsibilities
+## 운영 책임
 
-Project maintainers are responsible for clarifying and enforcing our standards of acceptable behavior and will take appropriate and fair corrective action in response to any behavior that they deem inappropriate, threatening, offensive, or harmful.
+프로젝트 관리자는 허용 가능한 행동 기준을 명확히 하고 시행할 책임이 있으며, 부적절하거나 위협적이거나 공격적이거나 해롭다고 판단되는 행동에 대해 적절하고 공정한 시정 조치를 취합니다.
 
-## Scope
+## 적용 범위
 
-This Code of Conduct applies within all community spaces, and also applies when an individual is officially representing the community in public spaces.
+이 행동 강령은 모든 커뮤니티 공간에 적용되며, 개인이 공식적으로 커뮤니티를 대표하는 공개 공간에서도 적용됩니다.
 
-## Enforcement
+## 적용 절차
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the project maintainers at the repository's issue tracker. All complaints will be reviewed and investigated promptly and fairly.
+부적절하거나 괴롭히는 행동이 발견되면 저장소의 이슈 트래커를 통해 프로젝트 관리자에게 신고할 수 있습니다. 모든 신고는 신속하고 공정하게 검토·조사됩니다.
 
-## Attribution
+## 출처
 
-This Code of Conduct is adapted from the [Contributor Covenant](https://www.contributor-covenant.org), version 2.1.
+이 행동 강령은 [Contributor Covenant](https://www.contributor-covenant.org) 버전 2.1을 기반으로 작성되었습니다.

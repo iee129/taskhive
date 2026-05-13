@@ -1,4 +1,4 @@
-# Contributing to TaskHive
+# TaskHive 기여 가이드
 
 먼저 기여를 고려해 주셔서 감사합니다! 모든 기여를 환영합니다.
 
@@ -12,8 +12,8 @@ cd taskhive
 docker compose up
 
 # 또는 개별 실행
-cd auth && mvn spring-boot:run          # 백엔드 :8080
-cd frontend && npm install && npm run dev  # 프론트엔드 :5173
+cd apps/server && ./gradlew bootRun   # 백엔드 :8080
+cd apps/web && npm install && npm run dev  # 프론트엔드 :5173
 ```
 
 ### 필수 요구사항
@@ -21,7 +21,7 @@ cd frontend && npm install && npm run dev  # 프론트엔드 :5173
 | 도구 | 버전 |
 |------|------|
 | Java | 21 |
-| Maven | 3.9+ |
+| Gradle | 8.7 (wrapper 포함) |
 | Node | 20+ |
 | Docker Desktop | 최신 |
 
@@ -32,8 +32,8 @@ cd frontend && npm install && npm run dev  # 프론트엔드 :5173
 3. 변경사항을 작성하고 테스트를 통과시키세요.
 4. PR을 열기 전에 로컬에서 CI 게이트를 확인하세요:
    ```bash
-   cd auth && mvn verify -q
-   cd frontend && npx tsc --noEmit && npm run lint
+   cd apps/server && ./gradlew check -q
+   cd apps/web && npx tsc --noEmit && npm run lint
    ```
 5. PR 템플릿을 작성하고 제출하세요.
 
@@ -46,4 +46,4 @@ cd frontend && npm install && npm run dev  # 프론트엔드 :5173
 
 ## 행동 강령
 
-이 프로젝트는 [Contributor Covenant](CODE_OF_CONDUCT.md)를 따릅니다.
+이 프로젝트는 [기여자 행동 강령](CODE_OF_CONDUCT.md)을 따릅니다.
