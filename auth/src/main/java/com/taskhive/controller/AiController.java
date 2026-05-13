@@ -3,6 +3,8 @@ package com.taskhive.controller;
 import com.taskhive.dto.AiCapabilitiesResponse;
 import com.taskhive.dto.AiTaskRequest;
 import com.taskhive.dto.CommentResponse;
+import com.taskhive.dto.FilterParseRequest;
+import com.taskhive.dto.FilterParseResponse;
 import com.taskhive.dto.TaskRequest;
 import com.taskhive.dto.TaskResponse;
 import com.taskhive.service.AiService;
@@ -48,5 +50,11 @@ public class AiController {
     public ResponseEntity<CommentResponse> summarizeTask(@PathVariable Long taskId,
                                                           Authentication auth) {
         return ResponseEntity.ok(aiService.summarizeTask(taskId, auth.getName()));
+    }
+
+    @PostMapping("/parse-filter")
+    public ResponseEntity<FilterParseResponse> parseFilter(
+            @Valid @RequestBody FilterParseRequest request) {
+        return ResponseEntity.ok(aiService.parseFilter(request.query()));
     }
 }

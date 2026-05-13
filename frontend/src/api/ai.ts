@@ -9,3 +9,8 @@ export const createTaskFromAi = (description: string, projectId?: number) =>
 
 export const summarizeTask = (taskId: number) =>
   client.post<CommentResponse>(`/api/ai/tasks/${taskId}/ai-summary`).then((r) => r.data);
+
+export async function parseFilter(query: string): Promise<{ status?: string; priority?: string; dueDateBefore?: string }> {
+  const res = await client.post('/api/ai/parse-filter', { query });
+  return res.data;
+}

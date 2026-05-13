@@ -15,6 +15,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Map;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -71,6 +73,15 @@ class AiControllerTest {
         // 4. AI provider=none → isAvailable()=false → AI_UNAVAILABLE(503) (task 조회 전에 체크)
         mockMvc.perform(post("/api/ai/tasks/999/ai-summary")
                         .header("Authorization", "Bearer " + token))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("AI_UNAVAILABLE"));
+    }
+
+    @Test
+    void parseFilter_unavailable_returns503() throws Exception {
+        mockMvc.perform(post("/api/ai/parse-filter")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("query", "이번 주 마감 HIGH 내 태스크"))))
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.code").value("AI_UNAVAILABLE"));
     }

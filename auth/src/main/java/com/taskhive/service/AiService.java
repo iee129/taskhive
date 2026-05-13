@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.taskhive.dto.AiTaskRequest;
 import com.taskhive.dto.CommentRequest;
 import com.taskhive.dto.CommentResponse;
+import com.taskhive.dto.FilterParseResponse;
 import com.taskhive.dto.TaskRequest;
 import com.taskhive.exception.BusinessException;
 import com.taskhive.exception.ErrorCode;
@@ -138,6 +139,47 @@ public class AiService {
             log.warn("AI 응답 파싱 실패, 기본값 반환: {}", e.getMessage());
             return fallback(request);
         }
+    }
+
+    public FilterParseResponse parseFilter(String query) {
+        if (!aiProvider.isAvailable()) {
+            throw new BusinessException(ErrorCode.AI_UNAVAILABLE);
+        }
+
+        String today = LocalDate.now().toString();
+        String prompt = """
+                You are a task filter assistant. Today is %s.
+                Parse the user's natural language query into filter parameters.
+                Respond ONLY with valid JSON:
+                {"status": "TODO|IN_PROGRESS|DONE|null", "priority": "LOW|MEDIUM|HIGH|null", "dueDateBefore": "YYYY-MM-DD|null"}
+
+                Query: %s
+                """.formatted(today, query);
+
+        try {
+            String responseText = aiProvider.generate(prompt);
+            if (responseText == null || responseText.isBlank()) {
+                return new FilterParseResponse(null, null, null);
+            }
+
+            JsonNode parsed = objectMapper.readTree(responseText);
+
+            String status = nullableText(parsed.path("status"));
+            String priority = nullableText(parsed.path("priority"));
+            String dueDateBefore = nullableText(parsed.path("dueDateBefore"));
+
+            return new FilterParseResponse(status, priority, dueDateBefore);
+        } catch (Exception e) {
+            log.warn("AI 필터 파싱 실패, 기본값 반환: {}", e.getMessage());
+            return new FilterParseResponse(null, null, null);
+        }
+    }
+
+    private String nullableText(JsonNode node) {
+        if (node == null || node.isNull() || node.isMissingNode()) return null;
+        String text = node.asText(null);
+        if (text == null || text.isBlank() || text.equalsIgnoreCase("null")) return null;
+        return text;
     }
 
     private TaskRequest fallback(AiTaskRequest request) {
