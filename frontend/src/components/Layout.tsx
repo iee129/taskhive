@@ -2,7 +2,7 @@ import { Layout as AntLayout, Menu } from 'antd';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import {
   CheckSquareOutlined, UserOutlined, LogoutOutlined,
-  AppstoreOutlined, BarChartOutlined, ProjectOutlined,
+  AppstoreOutlined, BarChartOutlined, ProjectOutlined, SettingOutlined,
 } from '@ant-design/icons';
 import AiProviderBanner from './AiProviderBanner';
 
@@ -23,6 +23,7 @@ export default function Layout() {
     { key: '/kanban', icon: <AppstoreOutlined />, label: '칸반 보드' },
     { key: '/stats', icon: <BarChartOutlined />, label: '통계' },
     { key: '/profile', icon: <UserOutlined />, label: '프로필' },
+    { key: '/settings', icon: <SettingOutlined />, label: '설정' },
     { key: 'logout', icon: <LogoutOutlined />, label: '로그아웃', danger: true },
   ];
 

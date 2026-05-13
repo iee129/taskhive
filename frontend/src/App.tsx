@@ -12,6 +12,7 @@ import VerifyEmailPage from './pages/VerifyEmailPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import ProjectsPage from './pages/ProjectsPage';
+import SettingsPage from './pages/SettingsPage';
 
 export default function App() {
   return (
@@ -30,6 +31,7 @@ export default function App() {
             <Route path="/kanban" element={<KanbanPage />} />
             <Route path="/stats" element={<StatsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/settings" element={<SettingsPage />} />
             <Route path="/" element={<Navigate to="/tasks" replace />} />
           </Route>
         </Route>
