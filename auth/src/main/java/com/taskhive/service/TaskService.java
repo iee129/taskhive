@@ -21,6 +21,7 @@ public class TaskService {
     private final UserRepository userRepository;
     private final ProjectMemberRepository memberRepository;
     private final TaskStatusHistoryRepository statusHistoryRepository;
+    private final WebhookDeliveryService webhookDeliveryService;
 
     public List<TaskResponse> getAllTasks() {
         return taskRepository.findAllByDeletedAtIsNull().stream()
@@ -65,7 +66,11 @@ public class TaskService {
                     .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
             task.setAssignee(assignee);
         }
-        return TaskResponse.from(taskRepository.save(task));
+        TaskResponse response = TaskResponse.from(taskRepository.save(task));
+        if (task.getProject() != null) {
+            webhookDeliveryService.deliver(task.getProject().getId(), "task.created", response);
+        }
+        return response;
     }
 
     @Transactional
@@ -87,7 +92,11 @@ public class TaskService {
         }
         if (request.getPriority() != null) task.setPriority(request.getPriority());
         task.setDueDate(request.getDueDate());
-        return TaskResponse.from(taskRepository.save(task));
+        TaskResponse response = TaskResponse.from(taskRepository.save(task));
+        if (task.getProject() != null) {
+            webhookDeliveryService.deliver(task.getProject().getId(), "task.updated", response);
+        }
+        return response;
     }
 
     @Transactional
@@ -95,7 +104,11 @@ public class TaskService {
         Task task = taskRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.TASK_NOT_FOUND));
         checkProjectMembership(task, requesterEmail);
+        Long projectId = task.getProject() != null ? task.getProject().getId() : null;
         task.setDeletedAt(LocalDateTime.now());
+        if (projectId != null) {
+            webhookDeliveryService.deliver(projectId, "task.deleted", id);
+        }
     }
 
     private void checkProjectMembership(Task task, String requesterEmail) {

@@ -4,10 +4,11 @@ import {
   message, Row, Col, Typography, Space, Tag, List, AutoComplete,
 } from 'antd';
 import {
-  PlusOutlined, TeamOutlined, DeleteOutlined, UserAddOutlined,
+  PlusOutlined, TeamOutlined, DeleteOutlined, UserAddOutlined, SettingOutlined,
 } from '@ant-design/icons';
 import { getProjects, createProject, deleteProject, type ProjectResponse, type MemberResponse } from '../api/projects';
 import { getMembers, addMember, removeMember, searchUsers, type UserSearchResult } from '../api/members';
+import WebhookManager from '../components/WebhookManager';
 
 const { Title, Text } = Typography;
 
@@ -187,6 +188,7 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [memberProject, setMemberProject] = useState<ProjectResponse | null>(null);
+  const [webhookProject, setWebhookProject] = useState<ProjectResponse | null>(null);
   const [form] = Form.useForm();
   const [messageApi, contextHolder] = message.useMessage();
 
@@ -246,14 +248,17 @@ export default function ProjectsPage() {
               loading={loading}
               title={project.name}
               extra={
-                <Popconfirm
-                  title="프로젝트를 삭제하시겠습니까?"
-                  onConfirm={() => handleDelete(project.id)}
-                  okText="삭제"
-                  cancelText="취소"
-                >
-                  <Button size="small" type="text" danger icon={<DeleteOutlined />} />
-                </Popconfirm>
+                <Space>
+                  <Button size="small" type="text" icon={<SettingOutlined />} title="웹훅 관리" onClick={(e) => { e.stopPropagation(); setWebhookProject(project); }} />
+                  <Popconfirm
+                    title="프로젝트를 삭제하시겠습니까?"
+                    onConfirm={() => handleDelete(project.id)}
+                    okText="삭제"
+                    cancelText="취소"
+                  >
+                    <Button size="small" type="text" danger icon={<DeleteOutlined />} />
+                  </Popconfirm>
+                </Space>
               }
               style={{ height: '100%' }}
             >
@@ -306,6 +311,18 @@ export default function ProjectsPage() {
           open={!!memberProject}
           onClose={() => setMemberProject(null)}
         />
+      )}
+
+      {webhookProject && (
+        <Modal
+          title={`웹훅 관리 — ${webhookProject.name}`}
+          open={!!webhookProject}
+          onCancel={() => setWebhookProject(null)}
+          footer={null}
+          width={700}
+        >
+          <WebhookManager projectId={webhookProject.id} />
+        </Modal>
       )}
     </div>
   );
