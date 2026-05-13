@@ -21,10 +21,10 @@ jobs:
         with:
           java-version: '21'
           distribution: temurin
-          cache: maven
+          cache: gradle
 
       - name: Build backend JAR
-        run: cd apps/server && mvn package -DskipTests -q
+        run: cd apps/server && ./gradlew bootJar -x test --no-daemon -q
 
       - name: Start stack
         run: docker compose up -d --build

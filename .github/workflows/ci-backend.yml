@@ -21,16 +21,16 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: 'maven'
+          cache: 'gradle'
 
       - name: Build and verify
         working-directory: apps/server
-        run: mvn verify -B
+        run: ./gradlew check --no-daemon
 
       - name: JaCoCo 커버리지 PR 코멘트
         uses: madrapps/jacoco-report@v1.7.1
         with:
-          paths: apps/server/target/site/jacoco/jacoco.xml
+          paths: apps/server/build/reports/jacoco/test/jacocoTestReport.xml
           token: ${{ secrets.GITHUB_TOKEN }}
           title: '## Coverage Report'
           update-comment: true

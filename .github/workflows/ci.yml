@@ -17,10 +17,10 @@ jobs:
         with:
           java-version: '21'
           distribution: temurin
-          cache: maven
+          cache: gradle
 
       - name: Build & test
-        run: cd apps/server && mvn verify -q
+        run: cd apps/server && ./gradlew check --no-daemon -q
 
   frontend:
     runs-on: ubuntu-latest

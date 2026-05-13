@@ -253,7 +253,7 @@ BASE_URL=https://<vercel-url> npx playwright test
 
 ```bash
 # 백엔드 (포트 8080)
-cd apps/server && mvn spring-boot:run
+cd apps/server && ./gradlew bootRun
 
 # 프론트엔드 (포트 5173)
 cd apps/web && npm install && npm run dev
