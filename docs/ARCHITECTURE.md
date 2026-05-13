@@ -284,7 +284,7 @@ SecurityConfig (Order=2, 전역)
 
 ### Playwright E2E + GitHub Actions
 
-`frontend/e2e/` 아래 4개 spec 파일로 인증·태스크·프로젝트·AI 흐름을 자동 검증합니다. CI(`.github/workflows/e2e.yml`)는 push·PR 트리거로 실행되며, `E2E_BACKEND_URL` secret이 설정된 경우 테스트 전 seed API를 호출하여 데이터를 초기화합니다.
+`apps/web/e2e/` 아래 4개 spec 파일로 인증·태스크·프로젝트·AI 흐름을 자동 검증합니다. CI(`.github/workflows/e2e.yml`)는 push·PR 트리거로 실행되며, `E2E_BACKEND_URL` secret이 설정된 경우 테스트 전 seed API를 호출하여 데이터를 초기화합니다.
 
 자세한 사용법은 [TESTING.md](TESTING.md)를 참조하세요.
 
@@ -294,7 +294,7 @@ SecurityConfig (Order=2, 전역)
 
 ### 스키마 관리: Flyway 마이그레이션
 
-`ddl-auto=validate`를 사용하며, 스키마는 `auth/src/main/resources/db/migration/`의 Flyway 파일로만 변경합니다.
+`ddl-auto=validate`를 사용하며, 스키마는 `apps/server/src/main/resources/db/migration/`의 Flyway 파일로만 변경합니다.
 
 | 파일 | 내용 |
 |------|------|

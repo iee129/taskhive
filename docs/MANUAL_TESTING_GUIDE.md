@@ -295,8 +295,8 @@ curl -s -o /dev/null -w "%{http_code}\n" https://<vercel-url>/ | grep -q "200" &
 
 배포 환경에는 노출 안 되지만, 로컬에서 다음으로 생성 가능:
 ```bash
-cd auth && mvn verify
-open target/site/jacoco/index.html
+cd apps/server && ./gradlew check
+open build/reports/jacoco/test/html/index.html
 ```
 
 ---
@@ -329,7 +329,7 @@ open target/site/jacoco/index.html
 
 위 시나리오는 수동 검증용이며, CI에서는 다음이 자동 실행됩니다:
 
-- **백엔드 단위/통합 테스트**: `mvn verify` (63개, `.github/workflows/ci.yml`)
+- **백엔드 단위/통합 테스트**: `./gradlew check` (63개, `.github/workflows/ci.yml`)
 - **프론트엔드 타입 검사**: `npx tsc --noEmit`
 - **E2E 시나리오**: Playwright 4개 spec (`.github/workflows/e2e.yml`)
 

@@ -138,7 +138,7 @@ npx playwright show-report
 ```
 1. Checkout
 2. Set up Java 21
-3. mvn verify -q          — 단위·통합 테스트 포함 전체 빌드
+3. ./gradlew check -q          — 단위·통합 테스트 포함 전체 빌드
 4. Set up Node 20
 5. npm ci                 — 프론트엔드 의존성 설치
 6. npx tsc --noEmit       — TypeScript 타입 검사

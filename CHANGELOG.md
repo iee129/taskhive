@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-05-13
+
+### Changed (Infrastructure)
+- **디렉터리 재편** — `auth/` → `apps/server/`, `frontend/` → `apps/web/` (모노레포 `apps/` 패턴, Plane 참고)
+- **Maven → Gradle 마이그레이션** — `pom.xml` 제거, `build.gradle.kts` + `settings.gradle.kts` (Kotlin DSL), Gradle 8.7 wrapper
+- **불필요 파일 정리** — k8s 매니페스트 17개 삭제 (Kubernetes 미사용), `auth/railway.toml` 삭제 (Railway 미사용), 루트 `render.yaml` 중복 제거, `docker/docker-compose.yml` 중복 제거
+- **dependabot 비활성화** — `updates: []`로 자동 PR 생성 차단
+- **docs 정리** — verbose 하위 문서(`01-project` ~ `11-contributing`, 30+ 파일) 삭제, 실사용 상위 8개 가이드만 유지
+- **`.gitignore` 보강** — `.claude/` 추가 (AI 툴 내부 설정 추적 제외)
+
+### Migration Notes
+- 로컬 빌드: `cd apps/server && ./gradlew bootRun` (이전: `cd auth && mvn spring-boot:run`)
+- 로컬 테스트: `./gradlew check` (이전: `mvn verify`)
+- CI 워크플로우는 `apps/server/**` · `apps/web/**` 트리거로 자동 갱신됨
+
 ## [1.2.0] - 2026-05-13
 
 ### Added (M6 · M8 · M9)
@@ -12,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **M8-2 라벨/태그** — labels + task_labels Flyway 마이그레이션; CRUD 5개 엔드포인트; GET /api/tasks?labelId= 필터; 태스크 카드 색상 칩
 - **M8-4 마크다운 렌더링** — MarkdownContent (DOMPurify + react-markdown); 태스크 설명·코멘트 XSS 무력화; vitest 4개 유닛 테스트
 - **M8-6 다크모드** — Ant Design ConfigProvider dark/default 알고리즘 토글; localStorage 영속; 사이드바 스위치
-- **M9 최종 폴리시** — JaCoCo 라인 커버리지 리포트 (jacoco-maven-plugin 0.8.11); TaskRepository @EntityGraph N+1 차단; RequestIdFilter X-Request-Id 전파 (기존 완비)
+- **M9 최종 폴리시** — JaCoCo 라인 커버리지 리포트 (Gradle JaCoCo 플러그인); TaskRepository @EntityGraph N+1 차단; RequestIdFilter X-Request-Id 전파 (기존 완비)
 
 ### Changed
 - `TaskRepository.findFiltered` — labelId 파라미터 추가 (DISTINCT + LEFT JOIN t.labels)
