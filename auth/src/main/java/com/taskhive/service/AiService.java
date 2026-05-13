@@ -7,23 +7,31 @@ import com.taskhive.dto.BrainDumpItem;
 import com.taskhive.dto.CommentRequest;
 import com.taskhive.dto.CommentResponse;
 import com.taskhive.dto.FilterParseResponse;
+import com.taskhive.dto.PrioritizeItem;
+import com.taskhive.dto.StandupResponse;
 import com.taskhive.dto.TaskRequest;
 import com.taskhive.dto.TaskResponse;
 import com.taskhive.exception.BusinessException;
 import com.taskhive.exception.ErrorCode;
 import com.taskhive.model.Task;
 import com.taskhive.model.TaskActivity;
+import com.taskhive.model.User;
 import com.taskhive.repository.CommentRepository;
+import com.taskhive.repository.ProjectMemberRepository;
 import com.taskhive.repository.TaskActivityRepository;
 import com.taskhive.repository.TaskRepository;
+import com.taskhive.repository.UserRepository;
 import com.taskhive.service.ai.AiProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -38,6 +46,71 @@ public class AiService {
     private final TaskActivityRepository taskActivityRepository;
     private final CommentService commentService;
     private final TaskService taskService;
+    private final UserRepository userRepository;
+    private final ProjectMemberRepository projectMemberRepository;
+
+    public List<StandupResponse> generateStandup(Long projectId, String requesterEmail) {
+        if (!aiProvider.isAvailable()) {
+            throw new BusinessException(ErrorCode.AI_UNAVAILABLE);
+        }
+
+        User requester = userRepository.findByEmail(requesterEmail)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        if (!projectMemberRepository.existsByProjectIdAndUserId(projectId, requester.getId())) {
+            throw new BusinessException(ErrorCode.NOT_PROJECT_MEMBER);
+        }
+
+        LocalDateTime since = LocalDateTime.now().minusHours(24);
+        List<TaskActivity> activities = taskActivityRepository.findByProjectIdAndOccurredAtAfter(projectId, since);
+
+        if (activities.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        Map<String, List<TaskActivity>> byActor = activities.stream()
+                .collect(Collectors.groupingBy(TaskActivity::getActorEmail, LinkedHashMap::new, Collectors.toList()));
+
+        List<StandupResponse> result = new ArrayList<>();
+        for (Map.Entry<String, List<TaskActivity>> entry : byActor.entrySet()) {
+            String actorEmail = entry.getKey();
+            List<TaskActivity> userActivities = entry.getValue();
+
+            User actor = userRepository.findByEmail(actorEmail).orElse(null);
+            Long userId = actor != null ? actor.getId() : null;
+            String name = actor != null ? actor.getName() : actorEmail;
+
+            String activityLines = userActivities.stream()
+                    .map(a -> "- [" + a.getAction() + "] " + (a.getTaskTitle() != null ? a.getTaskTitle() : "") +
+                              (a.getDetail() != null && !a.getDetail().isBlank() ? ": " + a.getDetail() : ""))
+                    .collect(Collectors.joining("\n"));
+
+            String prompt = """
+                    You are a standup assistant. Summarize the following team member's task activities from the last 24 hours in Korean in 1-2 sentences.
+                    Focus on what they worked on and any notable changes. Be concise and direct.
+
+                    Team member: %s
+                    Activities:
+                    %s
+
+                    Respond with a concise summary only, no extra formatting.
+                    """.formatted(name, activityLines);
+
+            String summary;
+            try {
+                summary = aiProvider.generate(prompt);
+                if (summary == null || summary.isBlank()) {
+                    summary = "활동 요약을 생성할 수 없습니다.";
+                }
+            } catch (Exception e) {
+                log.warn("스탠드업 요약 생성 실패 ({}): {}", actorEmail, e.getMessage());
+                throw new BusinessException(ErrorCode.AI_UNAVAILABLE);
+            }
+
+            result.add(new StandupResponse(userId, name, summary));
+        }
+
+        return result;
+    }
 
     public CommentResponse summarizeTask(Long taskId, String requesterEmail) {
         if (!aiProvider.isAvailable()) {
@@ -235,6 +308,77 @@ public class AiService {
             created.add(taskService.createTask(taskRequest, requesterEmail));
         }
         return created;
+    }
+
+    public List<PrioritizeItem> prioritizeTasks(Long projectId, String requesterEmail) {
+        if (!aiProvider.isAvailable()) {
+            throw new BusinessException(ErrorCode.AI_UNAVAILABLE);
+        }
+
+        User requester = userRepository.findByEmail(requesterEmail)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        if (!projectMemberRepository.existsByProjectIdAndUserId(projectId, requester.getId())) {
+            throw new BusinessException(ErrorCode.NOT_PROJECT_MEMBER);
+        }
+
+        List<Task> todoTasks = taskRepository.findByProjectIdAndStatusAndDeletedAtIsNull(projectId, Task.Status.TODO);
+        if (todoTasks.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        String taskList = todoTasks.stream()
+                .map(t -> "- id=%d title=%s priority=%s".formatted(t.getId(), t.getTitle(), t.getPriority()))
+                .collect(Collectors.joining("\n"));
+
+        String prompt = """
+                You are a task management assistant. Prioritize the following TODO tasks for a project.
+                Respond ONLY with a valid JSON array in this exact format:
+                [{"taskId": <number>, "reason": "<brief reason in Korean>"}, ...]
+
+                Order by highest priority first. Include all tasks.
+
+                Tasks:
+                %s
+                """.formatted(taskList);
+
+        try {
+            String responseText = aiProvider.generate(prompt);
+            if (responseText == null || responseText.isBlank()) {
+                return new ArrayList<>();
+            }
+
+            JsonNode parsed = objectMapper.readTree(responseText);
+            if (!parsed.isArray()) {
+                log.warn("우선순위화 파싱 실패: 배열이 아님");
+                return new ArrayList<>();
+            }
+
+            List<PrioritizeItem> items = new ArrayList<>();
+            for (JsonNode node : parsed) {
+                long taskId = node.path("taskId").asLong(0);
+                String reason = node.path("reason").asText("");
+                if (taskId > 0) {
+                    items.add(new PrioritizeItem(taskId, reason));
+                }
+            }
+            return items;
+        } catch (Exception e) {
+            log.warn("우선순위화 파싱 실패, 빈 리스트 반환: {}", e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    public List<TaskResponse> getBlockers(Long projectId, String requesterEmail) {
+        User requester = userRepository.findByEmail(requesterEmail)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        if (!projectMemberRepository.existsByProjectIdAndUserId(projectId, requester.getId())) {
+            throw new BusinessException(ErrorCode.NOT_PROJECT_MEMBER);
+        }
+
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(14);
+        return taskRepository.findBlockers(projectId, cutoff).stream()
+                .map(TaskResponse::from)
+                .collect(Collectors.toList());
     }
 
     private String nullableText(JsonNode node) {

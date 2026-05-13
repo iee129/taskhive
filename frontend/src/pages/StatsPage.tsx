@@ -1,20 +1,29 @@
 import { useEffect, useState } from 'react';
-import { Row, Col, Card, Statistic, Progress, Typography, Spin } from 'antd';
+import { Row, Col, Card, Statistic, Progress, Typography, Spin, Button, Select, Space } from 'antd';
 import {
   CheckCircleOutlined, ClockCircleOutlined, ExclamationCircleOutlined,
-  ProjectOutlined, MessageOutlined, WarningOutlined,
+  ProjectOutlined, MessageOutlined, WarningOutlined, RobotOutlined,
 } from '@ant-design/icons';
 import { getStats } from '../api/stats';
+import { getProjects, type ProjectResponse } from '../api/projects';
 import ActivityFeed from '../components/ActivityFeed';
+import StandupModal from '../components/StandupModal';
 import type { StatsResponse } from '../types/task';
 
 export default function StatsPage() {
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [projects, setProjects] = useState<ProjectResponse[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const [standupOpen, setStandupOpen] = useState(false);
 
   useEffect(() => {
     setLoading(true);
     getStats().then(setStats).catch(() => {}).finally(() => setLoading(false));
+    getProjects().then((ps) => {
+      setProjects(ps);
+      if (ps.length > 0) setSelectedProjectId(ps[0].id);
+    }).catch(() => {});
   }, []);
 
   if (loading) return <Spin size="large" style={{ display: 'block', marginTop: 80 }} />;
@@ -26,7 +35,27 @@ export default function StatsPage() {
 
   return (
     <div>
-      <Typography.Title level={3} style={{ marginBottom: 24 }}>통계 대시보드</Typography.Title>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <Typography.Title level={3} style={{ margin: 0 }}>통계 대시보드</Typography.Title>
+        <Space>
+          <Select
+            style={{ width: 180 }}
+            value={selectedProjectId}
+            onChange={setSelectedProjectId}
+            placeholder="프로젝트 선택"
+            options={projects.map((p) => ({ value: p.id, label: p.name }))}
+          />
+          <Button
+            type="primary"
+            ghost
+            icon={<RobotOutlined />}
+            disabled={selectedProjectId == null}
+            onClick={() => setStandupOpen(true)}
+          >
+            스탠드업 생성
+          </Button>
+        </Space>
+      </div>
 
       <Row gutter={[16, 16]}>
         <Col xs={12} sm={8} md={6}>
@@ -100,6 +129,14 @@ export default function StatsPage() {
           </Card>
         </Col>
       </Row>
+
+      {standupOpen && selectedProjectId != null && (
+        <StandupModal
+          open={standupOpen}
+          onClose={() => setStandupOpen(false)}
+          projectId={selectedProjectId}
+        />
+      )}
     </div>
   );
 }

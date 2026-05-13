@@ -30,3 +30,29 @@ export async function createTasksFromBreakdown(items: BrainDumpItem[], projectId
   const res = await client.post<TaskResponse[]>('/api/ai/breakdown/create', { items, projectId });
   return res.data;
 }
+
+export interface PrioritizeItem {
+  taskId: number;
+  reason: string;
+}
+
+export async function prioritizeTasks(projectId: number): Promise<PrioritizeItem[]> {
+  const res = await client.post<PrioritizeItem[]>(`/api/projects/${projectId}/prioritize`);
+  return res.data;
+}
+
+export async function getBlockers(projectId: number): Promise<TaskResponse[]> {
+  const res = await client.get<TaskResponse[]>(`/api/projects/${projectId}/blockers`);
+  return res.data;
+}
+
+export interface StandupItem {
+  userId: number;
+  name: string;
+  summary: string;
+}
+
+export async function generateStandup(projectId: number): Promise<StandupItem[]> {
+  const res = await client.post<StandupItem[]>(`/api/projects/${projectId}/standup`);
+  return res.data;
+}

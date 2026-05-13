@@ -1,10 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Card, Typography, Tag, Button, Spin, Space, message } from 'antd';
+import { Card, Typography, Tag, Button, Spin, Space, message, Tooltip } from 'antd';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined, WarningOutlined } from '@ant-design/icons';
 import { getTasks, updateTask } from '../api/tasks';
 import type { TaskResponse, TaskStatus, TaskRequest } from '../types/task';
 import { useBoardSync, type TaskEvent } from '../hooks/useBoardSync';
+import { getBlockers } from '../api/ai';
+import { getProjects } from '../api/projects';
 
 const COLUMNS: { key: TaskStatus; label: string; color: string }[] = [
   { key: 'TODO', label: '할 일', color: '#f0f0f0' },
@@ -22,6 +24,7 @@ const PRIORITY_LABEL: Record<string, string> = {
 export default function KanbanPage() {
   const [tasks, setTasks] = useState<TaskResponse[]>([]);
   const [loading, setLoading] = useState(false);
+  const [blockerIds, setBlockerIds] = useState<Set<number>>(new Set());
   const [messageApi, contextHolder] = message.useMessage();
 
   const fetchTasks = async () => {
@@ -31,7 +34,27 @@ export default function KanbanPage() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchTasks(); }, []);
+  const fetchBlockers = useCallback(async () => {
+    try {
+      const projects = await getProjects();
+      const allBlockerIds = new Set<number>();
+      await Promise.all(
+        projects.map(async (p) => {
+          try {
+            const blockers = await getBlockers(p.id);
+            blockers.forEach((b) => allBlockerIds.add(b.id));
+          } catch {
+            // 프로젝트 멤버가 아니거나 오류 시 무시
+          }
+        })
+      );
+      setBlockerIds(allBlockerIds);
+    } catch {
+      // 블로커 로드 실패 시 뱃지 없이 계속
+    }
+  }, []);
+
+  useEffect(() => { fetchTasks(); fetchBlockers(); }, []);
 
   const handleBoardEvent = useCallback((event: TaskEvent) => {
     if (event.type === 'TASK_UPDATED') {
@@ -130,10 +153,16 @@ export default function KanbanPage() {
                                   ? '0 4px 12px rgba(0,0,0,0.15)'
                                   : '0 1px 3px rgba(0,0,0,0.08)',
                                 cursor: 'grab',
+                                border: blockerIds.has(task.id) ? '1.5px solid #ff4d4f' : undefined,
                                 ...provided.draggableProps.style,
                               }}
                             >
                               <Typography.Text strong style={{ display: 'block', marginBottom: 4 }}>
+                                {blockerIds.has(task.id) && (
+                                  <Tooltip title="14일 이상 진행 중인 블로커 태스크">
+                                    <WarningOutlined style={{ color: '#ff4d4f', marginRight: 4 }} />
+                                  </Tooltip>
+                                )}
                                 {task.title}
                               </Typography.Text>
                               {task.description && (

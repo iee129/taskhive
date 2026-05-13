@@ -1,7 +1,11 @@
 package com.taskhive.controller;
 
+import com.taskhive.dto.PrioritizeItem;
 import com.taskhive.dto.ProjectRequest;
 import com.taskhive.dto.ProjectResponse;
+import com.taskhive.dto.StandupResponse;
+import com.taskhive.dto.TaskResponse;
+import com.taskhive.service.AiService;
 import com.taskhive.service.ProjectService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +21,7 @@ import java.util.List;
 public class ProjectController {
 
     private final ProjectService projectService;
+    private final AiService aiService;
 
     @GetMapping
     public ResponseEntity<List<ProjectResponse>> getMyProjects(Authentication authentication) {
@@ -45,5 +50,20 @@ public class ProjectController {
     public ResponseEntity<Void> delete(@PathVariable Long id, Authentication authentication) {
         projectService.deleteProject(id, authentication.getName());
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/standup")
+    public ResponseEntity<List<StandupResponse>> standup(@PathVariable Long id, Authentication authentication) {
+        return ResponseEntity.ok(aiService.generateStandup(id, authentication.getName()));
+    }
+
+    @PostMapping("/{id}/prioritize")
+    public ResponseEntity<List<PrioritizeItem>> prioritize(@PathVariable Long id, Authentication authentication) {
+        return ResponseEntity.ok(aiService.prioritizeTasks(id, authentication.getName()));
+    }
+
+    @GetMapping("/{id}/blockers")
+    public ResponseEntity<List<TaskResponse>> blockers(@PathVariable Long id, Authentication authentication) {
+        return ResponseEntity.ok(aiService.getBlockers(id, authentication.getName()));
     }
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Table, Button, Modal, Form, Input, Select, DatePicker, Popconfirm, message, Space, Tag, Drawer, Divider } from 'antd';
+import { Table, Button, Modal, Form, Input, Select, DatePicker, Popconfirm, message, Space, Tag, Drawer, Divider, List, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { RobotOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -9,6 +9,8 @@ import FilterBar from '../components/FilterBar';
 import CommentList from '../components/CommentList';
 import AiTaskInput from '../components/AiTaskInput';
 import BrainDumpModal from '../components/BrainDumpModal';
+import { prioritizeTasks, type PrioritizeItem } from '../api/ai';
+import { getProjects, type ProjectResponse } from '../api/projects';
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080';
 
@@ -41,6 +43,13 @@ export default function TasksPage() {
   const [filterPriority, setFilterPriority] = useState<TaskPriority | undefined>();
   const [filterSearch, setFilterSearch] = useState('');
 
+  const [prioritizeOpen, setPrioritizeOpen] = useState(false);
+  const [prioritizeItems, setPrioritizeItems] = useState<PrioritizeItem[]>([]);
+  const [prioritizeLoading, setPrioritizeLoading] = useState(false);
+  const [projects, setProjects] = useState<ProjectResponse[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<number | undefined>();
+  const [prioritizeTitleMap, setPrioritizeTitleMap] = useState<Record<number, string>>({});
+
   const fetchTasks = async () => {
     setLoading(true);
     try {
@@ -64,6 +73,28 @@ export default function TasksPage() {
       .then((data) => setAiEnabled(data.enabled))
       .catch(() => setAiEnabled(false));
   }, []);
+
+  useEffect(() => {
+    if (aiEnabled) {
+      getProjects().then(setProjects).catch(() => {});
+    }
+  }, [aiEnabled]);
+
+  const handlePrioritize = async () => {
+    if (!selectedProjectId) return;
+    setPrioritizeLoading(true);
+    try {
+      const items = await prioritizeTasks(selectedProjectId);
+      setPrioritizeItems(items);
+      const titleMap: Record<number, string> = {};
+      tasks.forEach((t) => { titleMap[t.id] = t.title; });
+      setPrioritizeTitleMap(titleMap);
+    } catch {
+      messageApi.error('우선순위화에 실패했습니다 (AI가 활성화되어 있는지 확인하세요)');
+    } finally {
+      setPrioritizeLoading(false);
+    }
+  };
 
   const openCreate = () => {
     setEditingTask(null);
@@ -158,6 +189,9 @@ export default function TasksPage() {
           {aiEnabled && (
             <Button icon={<RobotOutlined />} onClick={() => setBrainDumpOpen(true)}>브레인덤프</Button>
           )}
+          {aiEnabled && (
+            <Button icon={<RobotOutlined />} onClick={() => { setPrioritizeItems([]); setPrioritizeOpen(true); }}>백로그 우선순위화</Button>
+          )}
           <Button type="primary" onClick={openCreate}>새 태스크</Button>
         </Space>
       </div>
@@ -225,6 +259,53 @@ export default function TasksPage() {
 
       <AiTaskInput open={aiOpen} onClose={() => setAiOpen(false)} onCreated={fetchTasks} />
       <BrainDumpModal open={brainDumpOpen} onClose={() => setBrainDumpOpen(false)} onSuccess={fetchTasks} />
+
+      <Modal
+        title={<Space><RobotOutlined />백로그 우선순위화</Space>}
+        open={prioritizeOpen}
+        onCancel={() => setPrioritizeOpen(false)}
+        footer={null}
+        width={520}
+      >
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <Select
+            placeholder="프로젝트 선택"
+            style={{ width: '100%' }}
+            value={selectedProjectId}
+            onChange={setSelectedProjectId}
+            options={projects.map((p) => ({ value: p.id, label: p.name }))}
+          />
+          <Button
+            type="primary"
+            ghost
+            icon={<RobotOutlined />}
+            onClick={handlePrioritize}
+            loading={prioritizeLoading}
+            disabled={!selectedProjectId}
+            block
+          >
+            우선순위화
+          </Button>
+          {prioritizeItems.length > 0 && (
+            <List
+              size="small"
+              dataSource={prioritizeItems}
+              renderItem={(item, index) => (
+                <List.Item>
+                  <List.Item.Meta
+                    avatar={<Tag color="blue">{index + 1}</Tag>}
+                    title={<Typography.Text strong>{prioritizeTitleMap[item.taskId] ?? `태스크 #${item.taskId}`}</Typography.Text>}
+                    description={item.reason}
+                  />
+                </List.Item>
+              )}
+            />
+          )}
+          {!prioritizeLoading && prioritizeItems.length === 0 && selectedProjectId && (
+            <Typography.Text type="secondary">우선순위화 버튼을 눌러 결과를 확인하세요.</Typography.Text>
+          )}
+        </Space>
+      </Modal>
     </>
   );
 }
