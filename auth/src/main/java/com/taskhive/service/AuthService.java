@@ -89,6 +89,10 @@ public class AuthService {
         return refreshTokenService.issue(user);
     }
 
+    public boolean isEmailTaken(String email) {
+        return userRepository.existsByEmail(email);
+    }
+
     @Transactional
     public void changePassword(String email, PasswordChangeRequest request) {
         User user = userRepository.findByEmail(email)

@@ -8,7 +8,12 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "tasks")
+@Table(name = "tasks", indexes = {
+    @Index(name = "idx_tasks_status", columnList = "status"),
+    @Index(name = "idx_tasks_priority", columnList = "priority"),
+    @Index(name = "idx_tasks_deleted_at", columnList = "deleted_at"),
+    @Index(name = "idx_tasks_assignee", columnList = "assignee_id")
+})
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Task extends BaseEntity {
 

@@ -1,0 +1,19 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+taskhive:
+  jwt:
+    secret: test-secret-key-for-testing-only-must-be-at-least-32chars
+    expiration-ms: 900000
+    refresh-expiration-ms: 604800000
+  cors:
+    allowed-origins: http://localhost:5173
+  ollama:
+    url: http://localhost:11434
+    model: llama3.2

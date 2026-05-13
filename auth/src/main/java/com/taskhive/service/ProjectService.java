@@ -12,6 +12,8 @@ import com.taskhive.repository.ProjectMemberRepository;
 import com.taskhive.repository.ProjectRepository;
 import com.taskhive.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +29,7 @@ public class ProjectService {
     private final UserRepository userRepository;
     private final ProjectMemberRepository memberRepository;
 
+    @Cacheable(value = "projects", key = "#email")
     public List<ProjectResponse> getMyProjects(String email) {
         User user = findUserByEmail(email);
         List<Long> memberProjectIds = memberRepository.findProjectIdsByUserId(user.getId());
@@ -45,6 +48,7 @@ public class ProjectService {
         return ProjectResponse.from(project, memberRepository.findByProjectId(id));
     }
 
+    @CacheEvict(value = "projects", key = "#email")
     @Transactional
     public ProjectResponse createProject(ProjectRequest request, String email) {
         User owner = findUserByEmail(email);
@@ -61,6 +65,7 @@ public class ProjectService {
         return ProjectResponse.from(project, List.of(ownerMember));
     }
 
+    @CacheEvict(value = "projects", key = "#email")
     @Transactional
     public ProjectResponse updateProject(Long id, ProjectRequest request, String email) {
         User user = findUserByEmail(email);
@@ -73,6 +78,7 @@ public class ProjectService {
         return ProjectResponse.from(projectRepository.save(project), memberRepository.findByProjectId(id));
     }
 
+    @CacheEvict(value = "projects", key = "#email")
     @Transactional
     public void deleteProject(Long id, String email) {
         User user = findUserByEmail(email);

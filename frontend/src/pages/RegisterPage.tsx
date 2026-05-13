@@ -2,10 +2,12 @@ import { Form, Input, Button, Card, Typography, message } from 'antd';
 import { useNavigate, Link } from 'react-router-dom';
 import { register } from '../api/auth';
 import type { RegisterRequest } from '../types/auth';
+import { useCheckEmail } from '../hooks/useCheckEmail';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
   const [messageApi, contextHolder] = message.useMessage();
+  const { validate: validateEmail, checking } = useCheckEmail();
 
   const onFinish = async (values: RegisterRequest) => {
     try {
@@ -27,8 +29,16 @@ export default function RegisterPage() {
           <Form.Item name="name" label="이름" rules={[{ required: true, min: 2, max: 50 }]}>
             <Input />
           </Form.Item>
-          <Form.Item name="email" label="이메일" rules={[{ required: true, type: 'email' }]}>
-            <Input />
+          <Form.Item
+            name="email"
+            label="이메일"
+            rules={[
+              { required: true, type: 'email' },
+              { validator: validateEmail },
+            ]}
+            validateTrigger="onBlur"
+          >
+            <Input disabled={checking} />
           </Form.Item>
           <Form.Item name="password" label="비밀번호" rules={[{ required: true, min: 8 }]}>
             <Input.Password />

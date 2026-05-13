@@ -26,7 +26,7 @@ public class TaskService {
 
     @Transactional(readOnly = true)
     public List<TaskResponse> getAllTasks() {
-        return taskRepository.findAllByDeletedAtIsNull().stream()
+        return taskRepository.findAllWithAssociations().stream()
                 .map(TaskResponse::from)
                 .toList();
     }
