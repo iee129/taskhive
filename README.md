@@ -243,15 +243,15 @@ cd auth && mvn spring-boot:run
 cd frontend && npm install && npm run dev
 ```
 
-PostgreSQL이 로컬에서 실행 중이어야 합니다. 스키마는 `spring.jpa.hibernate.ddl-auto=update`로 자동 생성됩니다.
+PostgreSQL이 로컬에서 실행 중이어야 합니다. Flyway 마이그레이션이 자동 적용됩니다.
 
 ## 배포
 
 | 서비스 | 플랫폼 | 설정 |
 |--------|--------|------|
-| 백엔드 | Railway | `auth/` 디렉토리, 환경 변수 주입 |
+| 백엔드 | Render | Docker, `render.yaml` 참고 |
 | 프론트엔드 | Vercel | `frontend/` 디렉토리, `VITE_API_URL` 설정 |
-| DB | Railway PostgreSQL | 자동 프로비저닝 |
+| DB | Neon (PostgreSQL) | `SPRING_DATASOURCE_URL` 환경 변수 주입 |
 
 ## 기존 DB 마이그레이션 노트
 
