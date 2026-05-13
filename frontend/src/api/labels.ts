@@ -1,11 +1,7 @@
 import client from './client';
+import type { LabelResponse } from '../types/task';
 
-export interface LabelResponse {
-  id: number;
-  name: string;
-  color: string;
-  projectId: number;
-}
+export type { LabelResponse };
 
 export const getProjectLabels = (projectId: number) =>
   client.get<LabelResponse[]>(`/api/projects/${projectId}/labels`).then((r) => r.data);

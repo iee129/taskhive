@@ -54,7 +54,6 @@ public class WebhookDeliveryService {
                 restTemplate.exchange(webhook.getUrl(), HttpMethod.POST,
                         new HttpEntity<>(body, headers), String.class);
 
-                // 성공 시 연속 실패 카운터 초기화
                 if (webhook.getConsecutiveFailures() > 0) {
                     webhook.setConsecutiveFailures(0);
                     webhookRepository.save(webhook);

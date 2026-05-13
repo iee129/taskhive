@@ -56,20 +56,28 @@ com.taskhive/
 │   ├── TaskController        — 태스크 CRUD + 상태 일괄 업데이트
 │   ├── CommentController     — 댓글 조회·추가·삭제
 │   ├── StatsController       — 통계 요약·활동 피드
+│   ├── AnalyticsController   — 번다운·CFD·사이클 타임 분석
+│   ├── LabelController       — 라벨 CRUD + 태스크 라벨 연결
+│   ├── PersonalAccessTokenController — PAT 생성·조회·폐기
+│   ├── WebhookController     — 아웃고잉 웹훅 등록·목록·삭제
+│   ├── SearchController      — 전역 태스크 퍼지 검색 (GET /api/search)
 │   ├── UserController        — 사용자 검색 (이메일 자동완성)
-│   └── AiController          — AI 태스크 제안·즉시 생성
+│   └── AiController          — AI 요약·자연어 필터·브레인덤프·스탠드업·우선순위·공수 추정
 │
 ├── service/          # 비즈니스 로직, 트랜잭션 경계
 │   ├── AuthService           — JWT 발급, 이메일 인증, 비밀번호 재설정
 │   ├── ProjectService        — 프로젝트 권한 검사(멤버여부·OWNER), CRUD
 │   ├── ProjectMemberService  — 멤버 초대/제거, LAST_OWNER 방어
-│   ├── TaskService           — 태스크 CRUD, 프로젝트 멤버십 검사
+│   ├── TaskService           — 태스크 CRUD, 프로젝트 멤버십 검사, 라벨 연결
 │   ├── CommentService        — 댓글 CRUD, 프로젝트 멤버십 검사
 │   ├── StatsService          — 집계 쿼리
+│   ├── AnalyticsService      — 번다운·CFD·사이클 타임 집계
+│   ├── WebhookDeliveryService — HMAC-SHA256 서명 @Async 전달, 5회 실패 자동 비활성
+│   ├── PersonalAccessTokenService — PAT SHA-256 해시 발급·인증
 │   └── AiService             — AiProvider 전략 패턴으로 LLM 호출 위임
 │
 ├── service/ai/       # AiProvider 전략 구현체
-│   ├── AiProvider    — 인터페이스 (suggestTask)
+│   ├── AiProvider    — 인터페이스
 │   ├── OllamaProvider — 로컬 Ollama REST 호출
 │   ├── GroqProvider  — Groq 클라우드 API 호출
 │   └── NoopProvider  — AI 비활성화 (항상 빈 응답)
@@ -78,9 +86,13 @@ com.taskhive/
 │   ├── UserRepository
 │   ├── ProjectRepository
 │   ├── ProjectMemberRepository
-│   ├── TaskRepository
+│   ├── TaskRepository           — @EntityGraph N+1 차단, labelId 필터
 │   ├── CommentRepository
 │   ├── TaskActivityRepository
+│   ├── TaskStatusHistoryRepository
+│   ├── LabelRepository
+│   ├── PersonalAccessTokenRepository
+│   ├── ProjectWebhookRepository
 │   ├── RefreshTokenRepository
 │   └── PasswordResetTokenRepository
 │
@@ -89,15 +101,20 @@ com.taskhive/
 │   ├── User
 │   ├── Project
 │   ├── ProjectMember — OWNER / MEMBER 역할
-│   ├── Task
+│   ├── Task          — ManyToMany labels
 │   ├── Comment
 │   ├── TaskActivity  — 활동 이력
+│   ├── TaskStatusHistory — 상태 변경 이력 (사이클 타임 계산용)
+│   ├── Label         — 프로젝트별 색상 태그
+│   ├── PersonalAccessToken — SHA-256 해시, 스코프, 폐기 여부
+│   ├── ProjectWebhook — URL, HMAC 시크릿, 이벤트 목록, 연속 실패 카운트
 │   ├── RefreshToken
 │   ├── PasswordResetToken
 │   └── enums/        — ProjectMemberRole, TaskStatus, TaskPriority
 │
 ├── dto/              # 요청(Request) · 응답(Response) record 클래스
-├── security/         # JwtUtil, JwtAuthFilter, SecurityConfig
+├── security/         # JwtUtil, JwtAuthFilter, SecurityConfig, PATAuthFilter
+├── filter/           # RequestIdFilter (X-Request-Id 전파)
 └── exception/        # ErrorCode enum, GlobalExceptionHandler
 ```
 
@@ -284,6 +301,9 @@ SecurityConfig (Order=2, 전역)
 | `V1__baseline.sql` | 초기 스키마 (users, projects, tasks, comments 등) |
 | `V2__task_status_history.sql` | task_status_history 테이블 |
 | `V3__indexes.sql` | 성능 인덱스 3개 (tasks.project_id+status, task_activities.task_id, task_activities.occurred_at) |
+| `V4__personal_access_tokens.sql` | personal_access_tokens 테이블 (SHA-256 해시, 스코프, 폐기 플래그) |
+| `V5__project_webhooks.sql` | project_webhooks 테이블 (URL, 시크릿, 이벤트, 연속 실패 카운트) |
+| `V6__labels.sql` | labels + task_labels 테이블 (ManyToMany) |
 
 ### Soft Delete
 `Task`와 `Comment`는 `deleted_at` 컬럼으로 소프트 삭제를 구현합니다. 모든 조회 쿼리는 `WHERE deleted_at IS NULL` 조건을 포함합니다.
