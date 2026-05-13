@@ -159,22 +159,22 @@ AI_PROVIDER=none
 
 ```
 taskhive/
-├── auth/               # Spring Boot 3 REST API (Java 21)
-│   └── src/main/java/com/taskhive/
-│       ├── controller/ # REST 컨트롤러
-│       ├── service/    # 비즈니스 로직
-│       ├── repository/ # Spring Data JPA
-│       ├── model/      # JPA 엔티티
-│       ├── dto/        # 요청·응답 DTO
-│       ├── security/   # JWT 필터, 설정
-│       └── exception/  # 에러 코드, 핸들러
-├── frontend/           # React 18 + TypeScript 5 (Vite)
-│   └── src/
-│       ├── api/        # Axios 클라이언트 모듈
-│       ├── components/ # 공통 UI 컴포넌트
-│       └── pages/      # 페이지 컴포넌트
-├── docs/               # API · 아키텍처 문서
-└── scripts/            # 유틸리티 스크립트
+├── apps/
+│   ├── server/             # Spring Boot 3 REST API (Java 21)
+│   │   └── src/main/java/com/taskhive/
+│   │       ├── controller/ # REST 컨트롤러
+│   │       ├── service/    # 비즈니스 로직
+│   │       ├── repository/ # Spring Data JPA
+│   │       ├── model/      # JPA 엔티티
+│   │       ├── dto/        # 요청·응답 DTO
+│   │       └── exception/  # 에러 코드, 핸들러
+│   └── web/                # React 18 + TypeScript 5 (Vite)
+│       └── src/
+│           ├── api/        # Axios 클라이언트 모듈
+│           ├── components/ # 공통 UI 컴포넌트
+│           └── pages/      # 페이지 컴포넌트
+├── docs/                   # API · 아키텍처 문서
+└── docker-compose.yml
 ```
 
 ## 개발자 테스트 환경
@@ -209,7 +209,7 @@ curl -X POST http://localhost:8080/api/dev/seed
 배포 URL 또는 로컬 서버를 타겟으로 브라우저 자동화 테스트를 실행합니다.
 
 ```bash
-cd frontend
+cd apps/web
 npx playwright install chromium   # 최초 1회
 npx playwright test               # localhost:5173 기준
 
@@ -227,7 +227,7 @@ BASE_URL=https://<vercel-url> npx playwright test
 
 ### 환경 변수 설정
 
-**백엔드** (`auth/src/main/resources/application.properties` 또는 환경 변수):
+**백엔드** (`apps/server/src/main/resources/application.properties` 또는 환경 변수):
 
 | 변수 | 설명 | 예시 |
 |------|------|------|
@@ -253,10 +253,10 @@ BASE_URL=https://<vercel-url> npx playwright test
 
 ```bash
 # 백엔드 (포트 8080)
-cd auth && mvn spring-boot:run
+cd apps/server && mvn spring-boot:run
 
 # 프론트엔드 (포트 5173)
-cd frontend && npm install && npm run dev
+cd apps/web && npm install && npm run dev
 ```
 
 PostgreSQL이 로컬에서 실행 중이어야 합니다. Flyway 마이그레이션이 자동 적용됩니다.
@@ -266,7 +266,7 @@ PostgreSQL이 로컬에서 실행 중이어야 합니다. Flyway 마이그레이
 | 서비스 | 플랫폼 | 설정 |
 |--------|--------|------|
 | 백엔드 | Render | Docker, `render.yaml` 참고 |
-| 프론트엔드 | Vercel | `frontend/` 디렉토리, `VITE_API_URL` 설정 |
+| 프론트엔드 | Vercel | `apps/web/` 디렉토리, `VITE_API_URL` 설정 |
 | DB | Neon (PostgreSQL) | `SPRING_DATASOURCE_URL` 환경 변수 주입 |
 
 ## 기존 DB 마이그레이션 노트
