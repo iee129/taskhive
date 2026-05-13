@@ -6,30 +6,28 @@
 ┌─────────────────────────────────────────────────────────┐
 │                     Client (Browser)                     │
 │            React 18 + TypeScript + Ant Design            │
-│                   Vercel (프론트엔드)                     │
 └────────────────────────┬────────────────────────────────┘
                          │ HTTPS / WebSocket
                          ▼
 ┌─────────────────────────────────────────────────────────┐
 │              Spring Boot 3 REST API (Java 21)            │
-│                   Railway (백엔드)                        │
 │                                                         │
 │  ┌──────────┐  ┌──────────┐  ┌───────────┐             │
-│  │ Controller│→│  Service │→│ Repository│             │
+│  │Controller│→│  Service │→│Repository │             │
 │  └──────────┘  └──────────┘  └─────┬─────┘             │
 │                                     │ JPA/Hibernate      │
 └─────────────────────────────────────┼───────────────────┘
                                       │
                          ┌────────────▼────────────┐
-                         │   PostgreSQL 16          │
-                         │   Railway (관리형 DB)    │
+                         │      PostgreSQL 16        │
                          └─────────────────────────┘
 ```
 
 **외부 서비스:**
 - **SMTP** — 이메일 인증 링크, 비밀번호 재설정 링크 발송
 - **Sentry** — 런타임 에러 수집 및 알림
-- **Ollama** (선택) — AI 태스크 제안 (로컬 LLM)
+- **Ollama** (선택, 로컬) — AI 태스크 제안 (로컬 LLM, 기본값)
+- **Groq** (선택, 클라우드) — 빠른 클라우드 LLM 추론 (`AI_PROVIDER=groq`)
 
 ---
 
@@ -54,7 +52,13 @@ com.taskhive/
 │   ├── TaskService           — 태스크 CRUD, 프로젝트 멤버십 검사
 │   ├── CommentService        — 댓글 CRUD, 프로젝트 멤버십 검사
 │   ├── StatsService          — 집계 쿼리
-│   └── AiService             — Ollama REST 호출
+│   └── AiService             — AiProvider 전략 패턴으로 LLM 호출 위임
+│
+├── service/ai/       # AiProvider 전략 구현체
+│   ├── AiProvider    — 인터페이스 (suggestTask)
+│   ├── OllamaProvider — 로컬 Ollama REST 호출
+│   ├── GroqProvider  — Groq 클라우드 API 호출
+│   └── NoopProvider  — AI 비활성화 (항상 빈 응답)
 │
 ├── repository/       # Spring Data JPA 인터페이스
 │   ├── UserRepository
@@ -257,14 +261,33 @@ SecurityConfig (Order=2, 전역)
 
 ## 주요 기술 결정
 
-### 스키마 관리: Flyway 대신 `ddl-auto=update`
-빠른 개발 반복을 위해 Hibernate의 자동 스키마 업데이트를 사용합니다. 프로덕션 전환 시 Flyway 마이그레이션으로 전환할 수 있습니다.
+### 스키마 관리: Flyway 마이그레이션
+
+`ddl-auto=validate`를 사용하며, 스키마는 `auth/src/main/resources/db/migration/`의 Flyway 파일로만 변경합니다.
+
+| 파일 | 내용 |
+|------|------|
+| `V1__baseline.sql` | 초기 스키마 (users, projects, tasks, comments 등) |
+| `V2__task_status_history.sql` | task_status_history 테이블 |
+| `V3__indexes.sql` | 성능 인덱스 3개 (tasks.project_id+status, task_activities.task_id, task_activities.occurred_at) |
 
 ### Soft Delete
 `Task`와 `Comment`는 `deleted_at` 컬럼으로 소프트 삭제를 구현합니다. 모든 조회 쿼리는 `WHERE deleted_at IS NULL` 조건을 포함합니다.
 
 ### JWT Stateless + Refresh Token Stateful
 액세스 토큰(15분)은 stateless JWT이고, 리프레시 토큰(7일)은 DB에 저장하여 명시적 로그아웃(토큰 무효화)을 지원합니다.
+
+### Spring Security 보안 헤더
+
+`SecurityConfig`의 `.headers()` DSL로 5개 헤더를 전역 적용합니다:
+
+| 헤더 | 값 |
+|------|----|
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` |
+| `Content-Security-Policy` | `default-src 'self'` |
+| `X-Content-Type-Options` | `nosniff` |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` |
+| `X-Frame-Options` | `DENY` |
 
 ### Rate Limiting: bucket4j
 로그인 엔드포인트는 분당 10회로 제한됩니다. 메모리 내 버킷을 사용하며, 분산 환경에서는 Redis 백엔드로 전환이 필요합니다.

@@ -50,6 +50,27 @@ OLLAMA_MODEL=llama3.2
 > ⚠️ **클라우드 경고**: `AI_PROVIDER=groq` 사용 시 태스크 설명이 Groq 서버로 전송됩니다.  
 > 민감한 데이터를 포함하지 마세요.
 
+## 아키텍처: AiProvider 전략 패턴
+
+백엔드는 `AiProvider` 인터페이스를 중심으로 한 전략 패턴을 사용합니다. 런타임에 `AI_PROVIDER` 환경변수로 구현체를 선택하며, `AiService`는 구현체를 직접 참조하지 않습니다.
+
+```
+AiProvider (인터페이스)
+  ├── OllamaProvider  — Ollama REST API 호출 (localhost:11434)
+  ├── GroqProvider    — Groq 클라우드 API 호출 (api.groq.com)
+  └── NoopProvider    — AI 비활성화 (빈 응답 반환)
+```
+
+`AiProviderConfig`가 `AI_PROVIDER` 값을 읽어 스프링 빈으로 등록하고, `AiService`가 주입받아 사용합니다.
+
+## UI: AiProviderBanner
+
+`AI_PROVIDER=groq` 등 `cloudProvider: true`인 경우, 프론트엔드 상단에 경고 배너가 표시됩니다:
+
+> ☁️ **클라우드 AI 사용 중** — 태스크 데이터가 외부 서버로 전송됩니다.
+
+`GET /api/ai/capabilities`의 `cloudProvider` 필드로 배너 표시 여부를 결정합니다. Ollama 및 None 모드에서는 배너가 숨겨집니다.
+
 ## 경쟁 제품 비교
 
 | 기능 | TaskHive | Plane.so | Vikunja | Focalboard |

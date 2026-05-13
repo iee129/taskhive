@@ -6,12 +6,12 @@
 
 ## 1. Swagger UI (수동 API 테스트)
 
-Railway에 배포된 백엔드에서 Swagger UI를 통해 모든 REST 엔드포인트를 브라우저에서 직접 호출할 수 있습니다.
+배포된 백엔드에서 Swagger UI를 통해 모든 REST 엔드포인트를 브라우저에서 직접 호출할 수 있습니다.
 
 ### 접속 방법
 
 ```
-https://<railway-backend-url>/swagger-ui.html
+https://<backend>/swagger-ui.html
 ```
 
 로컬 실행 시: `http://localhost:8080/swagger-ui.html`
@@ -45,7 +45,7 @@ https://<railway-backend-url>/swagger-ui.html
 POST /api/dev/seed
 ```
 
-> **주의:** `spring.profiles.active=dev` 환경에서만 동작합니다. 프로덕션 배포(Railway)에서는 이 엔드포인트가 존재하지 않습니다.
+> **주의:** `spring.profiles.active=dev` 환경에서만 동작합니다. 프로덕션 배포에서는 이 엔드포인트가 존재하지 않습니다.
 
 ### 생성 데이터
 
@@ -128,6 +128,26 @@ npx playwright show-report
 ---
 
 ## 4. GitHub Actions CI
+
+두 개의 워크플로우가 자동 실행됩니다.
+
+### 4-1. 메인 CI (`ci.yml`)
+
+백엔드 빌드·테스트·보안 감사를 수행합니다. `push` 및 `pull_request` 이벤트에서 트리거됩니다.
+
+```
+1. Checkout
+2. Set up Java 21
+3. mvn verify -q          — 단위·통합 테스트 포함 전체 빌드
+4. Set up Node 20
+5. npm ci                 — 프론트엔드 의존성 설치
+6. npx tsc --noEmit       — TypeScript 타입 검사
+7. npm audit              — 고위험 취약점 감사 (continue-on-error: true)
+```
+
+> npm audit는 경고로만 동작하며 CI를 블로킹하지 않습니다 (`--audit-level=high`, `continue-on-error: true`).
+
+### 4-2. E2E CI (`e2e.yml`)
 
 `push` 또는 `pull_request` 이벤트에서 E2E 테스트가 자동 실행됩니다.
 

@@ -1,6 +1,6 @@
 # TaskHive API 레퍼런스
 
-베이스 URL: `http://localhost:8080` (로컬) / Railway 배포 URL (운영)
+베이스 URL: `http://localhost:8080` (로컬) / `https://<backend>` (셀프호스팅 또는 운영)
 
 ## 인증 방식
 
@@ -414,6 +414,29 @@ POST /api/dev/seed
 ---
 
 ## AI API
+
+### AI 설정 상태 조회
+```
+GET /api/ai/capabilities
+```
+인증 불필요. 현재 활성 AI 프로바이더와 클라우드 여부를 반환합니다.
+
+**응답** `200 OK`
+```json
+{
+  "enabled": true,
+  "provider": "ollama",
+  "cloudProvider": false
+}
+```
+
+| 필드 | 설명 |
+|------|------|
+| `enabled` | AI 기능 활성 여부 (`AI_PROVIDER=none`이면 `false`) |
+| `provider` | 활성 프로바이더: `"ollama"` \| `"groq"` \| `"none"` |
+| `cloudProvider` | `true`이면 UI에 경고 배너(AiProviderBanner) 표시 |
+
+---
 
 ### 태스크 제안 (Ollama 필요)
 ```
